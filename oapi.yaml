@@ -1861,6 +1861,7 @@ components:
         $ref: "#/components/schemas/TraitProperties"
     "TraitProperties":
       type: object
+      # noqa: definancy-no-loose-additional-properties — open trait map by design
       additionalProperties: true
     "PaymentAcceptancePriceTrait":
       type: object
@@ -2816,14 +2817,16 @@ components:
         "schema":
           type: object
           description: |-
-            Metadata schema definition describing the structure and validation 
+            Metadata schema definition describing the structure and validation
             rules for the order data payload.
+          # noqa: definancy-no-loose-additional-properties — extensible metadata schema
           additionalProperties: true
         "data":
           type: object
           description: |-
-            Order-specific data payload containing business information relevant 
+            Order-specific data payload containing business information relevant
             to the commercial transaction.
+          # noqa: definancy-no-loose-additional-properties — extensible order data
           additionalProperties: true
     "PaymentAcceptanceInfo":
       type: object
