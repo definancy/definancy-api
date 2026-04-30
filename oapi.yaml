@@ -1,4 +1,4 @@
-openapi: "3.0.0"
+openapi: "3.1.0"
 info:
   title: Definancy API
   version: 0.0.1.wip.20250925
@@ -167,7 +167,8 @@ paths:
           schema:
             type: string
             pattern: "^[A-Z2-7]{58}$"
-            example: "ZKKXG4KA5PTZ526QA4URHSNOTYGHDON2GGTS3L6GCVDN6QUVIZNIMZ7K64"
+            examples:
+              - "ZKKXG4KA5PTZ526QA4URHSNOTYGHDON2GGTS3L6GCVDN6QUVIZNIMZ7K64"
           required: true
       responses:
         "200":
@@ -1631,6 +1632,11 @@ components:
         - $ref: "#/components/schemas/AmountRaw"
     "AmountValue":
       type: object
+      description: |-
+        Decimal-string wire form of an amount, expressed in the asset's
+        primary unit (e.g. "1.5" for 1.5 BTC). Counterpart to AmountRaw —
+        on the wire, use one form, not both, unless intentionally pairing
+        them (see AmountFormat).
       properties:
         "value":
           $ref: "#/components/schemas/Number"
@@ -1640,6 +1646,10 @@ components:
         - "value"
     "AmountRaw":
       type: object
+      description: |-
+        Smallest-denomination integer form of an amount paired with the
+        asset's decimal precision (e.g. raw="150000000", decimals=8 for
+        1.5 BTC). The integer-precise counterpart to AmountValue.
       properties:
         "raw":
           $ref: "#/components/schemas/UnsignedInteger"
@@ -1676,6 +1686,10 @@ components:
       minimum: 0
     "Expire":
       type: object
+      description: |-
+        Expiration directive expressible either as an absolute timestamp
+        (`at`) or as a relative duration in milliseconds (`in`). One of
+        the two is set, never both.
       properties:
         "at":
           $ref: "#/components/schemas/Timestamp"
@@ -1789,10 +1803,17 @@ components:
     # Media
     "MediaMap":
       type: object
+      description: |-
+        Map of media references keyed by an arbitrary string label
+        (purpose-specific in subtypes — e.g. "logo-light"/"logo-dark"
+        on AssetMediaMap). Values are Media descriptors.
       additionalProperties:
         $ref: "#/components/schemas/Media"
     "Media":
       type: object
+      description: |-
+        Single media reference with its content type, retrievable URL,
+        and optional descriptive metadata.
       properties:
         "type":
           $ref: "#/components/schemas/MediaType"
@@ -1805,10 +1826,17 @@ components:
         - "url"
     "MediaType":
       type: string
+      description: |-
+        Content category of a media reference. Currently only `image`
+        is supported.
       enum:
         - "image"
     "MediaMetadata":
       type: object
+      description: |-
+        Free-form metadata bag carried alongside a Media reference
+        (dimensions, alt text, source attribution, etc.). Concrete
+        fields are subtype-specific and may evolve.
 
     # QR-Code
     "QrCodeTransactionRequest":
@@ -1876,14 +1904,28 @@ components:
     # Traits
     "Traits":
       type: object
+      description: |-
+        Map of named traits keyed by trait identifier (e.g.
+        "payment-acceptance-price-trait"). Values are open property
+        bags — see TraitProperties. Used as the extensibility surface
+        for asset/contract/payment metadata.
       additionalProperties:
         $ref: "#/components/schemas/TraitProperties"
     "TraitProperties":
       type: object
+      description: |-
+        Free-form property bag for a single trait. Keys and value types
+        are trait-specific by design — see Traits and concrete trait
+        schemas (e.g. PaymentAcceptancePriceTrait) for the actual
+        shapes carried per trait identifier.
       # noqa: definancy-no-loose-additional-properties — open trait map by design
       additionalProperties: true
     "PaymentAcceptancePriceTrait":
       type: object
+      description: |-
+        Trait declaring the price range a payment-acceptance configuration
+        is willing to charge — bounded by `min-amount` and `max-amount`
+        Amount values.
       properties:
         "min-amount":
           $ref: "#/components/schemas/Amount"
@@ -1891,6 +1933,10 @@ components:
           $ref: "#/components/schemas/Amount"
     "PaymentAcceptancePayTrait":
       type: object
+      description: |-
+        Trait declaring the pay-out range a payment-acceptance configuration
+        is willing to receive — bounded by `min-amount` and `max-amount`
+        Amount values.
       properties:
         "min-amount":
           $ref: "#/components/schemas/Amount"
@@ -1914,8 +1960,8 @@ components:
           maxLength: 8
       required:
         - "status"
-      example:
-        "status": "ok"
+      examples:
+        - status: "ok"
     "Error":
       type: object
       description: |-
@@ -1943,9 +1989,9 @@ components:
       required:
         - "code"
         - "message"
-      example:
-        code: "AUT-401"
-        message: "Missing authorization token"
+      examples:
+        - code: "AUT-401"
+          message: "Missing authorization token"
     "ErrorList":
       type: array
       description: |-
@@ -1967,6 +2013,10 @@ components:
       maxLength: 32
     "NetworkMediaMap":
       type: object
+      description: |-
+        MediaMap subtype scoped to networks, conventionally carrying logo
+        variants (e.g. "logo-light", "logo-dark") for network display in
+        consumer wallets and dashboards.
       allOf:
         - $ref: "#/components/schemas/MediaMap"
         - type: object
@@ -2079,6 +2129,10 @@ components:
       maxLength: 8
     "AssetMediaMap":
       type: object
+      description: |-
+        MediaMap subtype scoped to assets, conventionally carrying logo
+        variants (e.g. "logo-light", "logo-dark") for asset display in
+        consumer wallets and dashboards.
       allOf:
         - $ref: "#/components/schemas/MediaMap"
         - type: object
@@ -2169,6 +2223,11 @@ components:
         - "network-id"
     "ContractTraits":
       type: object
+      description: |-
+        Traits subtype scoped to contracts. Layers well-known contract
+        trait keys (`payment-acceptance-price-trait`,
+        `payment-acceptance-pay-trait`) on top of the generic Traits
+        open map.
       allOf:
         - $ref: "#/components/schemas/Traits"
         - type: object
@@ -2179,6 +2238,10 @@ components:
               $ref: "#/components/schemas/PaymentAcceptancePayTrait"
     "ContractMediaMap":
       type: object
+      description: |-
+        MediaMap subtype scoped to contracts, conventionally carrying
+        logo variants for contract display in consumer wallets and
+        dashboards.
       allOf:
         - $ref: "#/components/schemas/MediaMap"
         - type: object
@@ -2383,6 +2446,10 @@ components:
         - "CustodialV1"
         - "NonCustodialV1"
     "DocumentConfig":
+      description: |-
+        Discriminated union of compliance-document content variants
+        (Person V1, Custodial V1, Non-Custodial V1). The `type` field
+        selects which variant's data shape applies.
       oneOf:
         - $ref: "#/components/schemas/DocumentConfigPersonV1"
         - $ref: "#/components/schemas/DocumentConfigCustodialV1"
@@ -2404,6 +2471,9 @@ components:
         - "type"
     "DocumentConfigPersonV1":
       type: object
+      description: |-
+        Document configuration carrying PersonV1 identity data (natural
+        or legal person). `type` is fixed to "PersonV1".
       allOf:
         - $ref: "#/components/schemas/DocumentConfigBase"
         - type: object
@@ -2414,6 +2484,10 @@ components:
             - "data"
     "DocumentConfigCustodialV1":
       type: object
+      description: |-
+        Document configuration carrying CustodialV1 data — declares a
+        custodial relationship with a regulated provider holding the
+        asset. `type` is fixed to "CustodialV1".
       allOf:
         - $ref: "#/components/schemas/DocumentConfigBase"
         - type: object
@@ -2424,6 +2498,10 @@ components:
             - "data"
     "DocumentConfigNonCustodialV1":
       type: object
+      description: |-
+        Document configuration carrying NonCustodialV1 data — declares
+        a self-custody arrangement bound to a wallet address. `type` is
+        fixed to "NonCustodialV1".
       allOf:
         - $ref: "#/components/schemas/DocumentConfigBase"
         - type: object
@@ -2463,6 +2541,10 @@ components:
       minLength: 1
       maxLength: 400
     "PersonV1":
+      description: |-
+        Identity record discriminated between natural persons
+        (PersonNaturalV1) and legal entities (PersonLegalV1). The V1
+        of Definancy's compliance person model.
       oneOf:
         - $ref: "#/components/schemas/PersonNaturalV1"
         - $ref: "#/components/schemas/PersonLegalV1"
@@ -2812,10 +2894,6 @@ components:
     # Vault - Payment - Acceptance
     "PaymentAcceptanceId":
       $ref: "#/components/schemas/UUID"
-      description: |-
-        Unique identifier for payment acceptance using UUID format. 
-        Ensures global uniqueness across all vaults and payment processing 
-        operations.
     "PaymentAcceptanceOrder":
       type: object
       description: |-
