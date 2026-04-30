@@ -1,0 +1,3191 @@
+openapi: "3.0.0"
+info:
+  title: Definancy API
+  version: 0.0.1.wip.20250925
+  description: |-
+    REST API for managing asset, network and contract configurations, and vault-based financial operations.
+    This API provides a comprehensive set of endpoints for health monitoring, network management, asset 
+    configuration, contract management, vault lifecycle management, and QR-Code generation. It is designed
+    to facilitate seamless integration with financial systems, ensuring secure and efficient payment 
+    processing while maintaining strict compliance standards.
+
+tags:
+  - name: Experimental
+    description: |-
+      Experimental endpoints to help in client development.
+      **These endpoints are only available in DEV environments**
+  - name: Probe
+    description: |-
+      Health monitoring endpoints for verifying service availability and operational status.
+      These endpoints allow you to check if the service is alive and ready to accept traffic, 
+      ensuring that your applications can rely on the Definancy service for their operations.
+  - name: Auth
+    description: |-
+      Authentication endpoints for managing authentication and authorization.
+      These endpoints allow you to authenticate and authorize users to access the Definancy service.
+  - name: Network
+    description: |-
+      Network configuration and status management.
+      This section includes endpoints for retrieving and managing network configurations, which
+      are essential for setting up and maintaining networks for payment processing.
+  - name: Asset
+    description: |-
+      Asset configuration and status management.
+      These endpoints allow you to manage digital assets, including retrieving and updating
+      asset configurations, which is crucial for handling various cryptocurrencies and tokens
+      in payment operations.
+  - name: Contract
+    description: |-
+      Contract configuration and status management.
+      This section provides endpoints for managing contracts, including retrieving and
+      updating contract configurations, which is vital for executing and validating payments
+      on networks.
+  - name: Vault
+    description: |-
+      Vault lifecycle management and configuration.
+      These endpoints enable you to manage vaults, which are containers for payment acceptance,
+      documents, and contract subscriptions. Vaults are essential for organizing and processing
+      payments while maintaining compliance.
+  - name: Vault - Contract Subscription
+    description: |-
+      Management of vault contract associations within vaults.
+      This section includes endpoints for subscribing and unsubscribing contracts to vaults,
+      allowing you to control which contracts are active in specific vaults for payment processing.
+  - name: Vault - Document
+    description: |-
+      Documents management within vaults.
+      These endpoints allow you to submit, retrieve, and archive documents related to payment
+      acceptance, ensuring that all necessary compliance documents are managed efficiently.
+  - name: Vault - Payment
+    description: |-
+      Payment processing and transaction management for vault-based financial operations.
+      These endpoints enable you to estimate, create, retrieve, update, and archive payments,
+      which are essential for executing payments and tracking their status.
+  - name: QR-Code
+    description: |-
+      QR-Code generator.
+      This section includes endpoints for generating QR codes, which are used for facilitating
+      blockchain transactions by encoding payment instructions that can be scanned by cryptocurrency
+      wallets.
+
+servers:
+  - url: https://stub.definancy.com
+    description: Stub - Authentication is disabled
+  - url: https://dev.definancy.com
+    description: Development
+
+security:
+  - dpop-auth: []
+    dpop-proof: []
+
+paths:
+  # Probes
+  /v1/healthy:
+    get:
+      operationId: HealthyCheck
+      summary: Health Check
+      description: |-
+        Verifies service liveness. Returns OK when operational.
+        This endpoint is used to check if the service is alive and ready to handle requests, 
+        ensuring that your applications can rely on the Definancy service for their operations.
+      tags:
+        - Probe
+      security: []
+      responses:
+        "200":
+          description: |-
+            OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  /v1/ready:
+    get:
+      operationId: ReadyCheck
+      summary: Ready Check
+      description: |-
+        Verifies service readiness. Returns OK when ready to accept traffic.
+        This endpoint checks if the service is ready to handle incoming requests, ensuring
+        that your applications can rely on the Definancy service for their operations.
+      tags:
+        - Probe
+      security: []
+      responses:
+        "200":
+          description: |-
+            OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  # Auth
+  /v1/auth/{definancyId}:
+    put:
+      operationId: RegisterAuth
+      summary: Register a Definancy ID
+      description: |-
+        Registers a **Definancy ID**.
+
+        This operation does not create a new Definancy ID from scratch but formally registers the
+        Definancy method-specific identifier on the network, enabling it to be resolved and used for
+        verifiable credentials and interactions.
+      tags:
+        - Auth
+      parameters:
+        - in: path
+          name: definancyId
+          description: |-
+            The Definancy Identifier. This is a base32-encoded (without padding) string derived from an ED25519 public key.
+            The identifier is generated by:
+            1. Taking the 32-byte public key
+            2. Computing a SHA512/256 hash (32 bytes) of the public key
+            3. Taking the last 4 bytes of this hash as a checksum
+            4. Appending the checksum to the public key (creating a 36-byte value)
+            5. Encoding the combined value using base32 without padding
+          schema:
+            type: string
+            pattern: "^[A-Z2-7]{58}$"
+            example: "ZKKXG4KA5PTZ526QA4URHSNOTYGHDON2GGTS3L6GCVDN6QUVIZNIMZ7K64"
+          required: true
+      responses:
+        "200":
+          description: |-
+            **Success.** The Definancy ID `{definancyId}` was successfully registered.
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "400":
+          $ref: "#/components/responses/InvalidRequestResponse"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "409":
+          $ref: "#/components/responses/ConflictResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  # Network
+  /v1/network:
+    get:
+      operationId: GetNetworks
+      summary: List Networks
+      description: |-
+        Retrieves all configured networks.
+        This endpoint returns a list of all configured networks, which are essential for 
+        setting up and maintaining networks for payment processing.
+      tags:
+        - Network
+      responses:
+        "200":
+          description: |-
+            Successful retrieval of network configurations.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Network"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  /v1/network/{networkId}:
+    get:
+      operationId: GetNetwork
+      summary: Get Network
+      description: |-
+        Retrieves configuration details for a specific network.
+        This endpoint returns detailed configuration information for a specific
+        network, which is essential for managing and maintaining networks for 
+        payment processing.
+      tags:
+        - Network
+      parameters:
+        - $ref: "#/components/parameters/NetworkIdParam"
+      responses:
+        "200":
+          description: |-
+            Network details retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Network"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+    patch:
+      operationId: ConfigNetwork
+      summary: Configure Network
+      description: |-
+        Updates configuration parameters for a network.
+        This endpoint allows you to update configuration parameters for a specific
+        network, which is essential for managing and maintaining networks for 
+        payment processing.
+      tags:
+        - Network
+      parameters:
+        - $ref: "#/components/parameters/NetworkIdParam"
+      requestBody:
+        description: |-
+          Network configuration parameters to update. Currently supports only the 'enabled' 
+          field for controlling network availability. When setting 'enabled' to false, the 
+          network will be disabled for payment processing while preserving all existing 
+          contracts and historical transaction data.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NetworkConfig"
+        required: true
+      responses:
+        "200":
+          description: |-
+            Network configuration updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Network"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "400":
+          $ref: "#/components/responses/InvalidRequestResponse"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  /v1/network/{networkId}/native:
+    get:
+      operationId: GetNetworkNativeAsset
+      summary: Get Network Native Asset
+      description: |-
+        Retrieves the native asset of a specific network in a form of a contract.
+        This endpoint returns the native asset of a specific network in the form of a contract, 
+        which is essential for understanding and managing the native token of a network.
+      tags:
+        - Network
+      parameters:
+        - $ref: "#/components/parameters/NetworkIdParam"
+      responses:
+        "200":
+          description: |-
+            The contract with the network's native asset details is retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contract"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  /v1/network/{networkId}/explorer:
+    get:
+      operationId: GetNetworkExplorer
+      summary: Get Network Explorer
+      description: |-
+        Returns URL templates for the network's block explorer.
+        Templates use {value} as a placeholder for the address or transaction ID.
+      tags:
+        - Network
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/NetworkIdParam"
+      responses:
+        "200":
+          description: |-
+            Explorer URL templates retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NetworkExplorer"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  # Asset
+  /v1/asset:
+    get:
+      operationId: GetAssets
+      summary: List Assets
+      description: |-
+        Retrieves all configured digital assets.
+        This endpoint returns a list of all configured digital assets, which are essential
+        for handling various assets in payment operations.
+      tags:
+        - Asset
+      responses:
+        "200":
+          description: |-
+            Asset list retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Asset"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  /v1/asset/{assetUnit}:
+    get:
+      operationId: GetAsset
+      summary: Get Asset
+      description: |-
+        Retrieves configuration details for a specific digital asset.
+        This endpoint returns detailed configuration information for a specific digital asset,
+        which is essential for managing and handling various assets in payment operations.
+      tags:
+        - Asset
+      parameters:
+        - $ref: "#/components/parameters/AssetUnitParam"
+      responses:
+        "200":
+          description: |-
+            Asset details retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+    patch:
+      operationId: ConfigAsset
+      summary: Configure Asset
+      description: |-
+        Updates configuration parameters for a digital asset.
+        This endpoint allows you to update configuration parameters for a specific digital asset, 
+        which is essential for managing and handling various assets in payment operations.
+      tags:
+        - Asset
+      parameters:
+        - $ref: "#/components/parameters/AssetUnitParam"
+      requestBody:
+        description: |-
+          Asset configuration parameters to update. Currently supports only the 'enabled' 
+          field for controlling asset availability. When setting 'enabled' to false, the 
+          asset will be disabled for payment processing while preserving all existing 
+          contracts and historical transaction data.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssetConfig"
+        required: true
+      responses:
+        "200":
+          description: |-
+            Asset configuration updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Asset"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "400":
+          $ref: "#/components/responses/InvalidRequestResponse"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  # Contract
+  /v1/contract:
+    get:
+      operationId: GetContracts
+      summary: List Contracts
+      description: |-
+        Retrieves all contract configurations.
+        This endpoint returns a list of all configured contracts, which are essential
+        for executing and validating payments on networks.
+      tags:
+        - Contract
+      responses:
+        "200":
+          description: |-
+            Contract list retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Contract"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  /v1/contract/{assetUnit}/{networkId}:
+    get:
+      operationId: GetContract
+      summary: Get Contract
+      description: |-
+        Retrieves configuration details for a specific smart contract.
+        This endpoint returns detailed configuration information for a specific contract,
+        which is essential for executing and validating payments on networks.
+      tags:
+        - Contract
+      parameters:
+        - $ref: "#/components/parameters/AssetUnitParam"
+        - $ref: "#/components/parameters/NetworkIdParam"
+      responses:
+        "200":
+          description: |-
+            Contract information retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contract"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+    patch:
+      operationId: ConfigContract
+      summary: Configure Contract
+      description: |-
+        Updates configuration parameters for a contract.
+        This endpoint allows you to update configuration parameters for a specific contract,
+        which is essential for executing and validating payments on networks.
+      tags:
+        - Contract
+      parameters:
+        - $ref: "#/components/parameters/AssetUnitParam"
+        - $ref: "#/components/parameters/NetworkIdParam"
+      requestBody:
+        description: |-
+          Contract configuration parameters to update. Currently supports only the 'enabled' 
+          field for controlling contract availability. When setting 'enabled' to false, the 
+          contract will be disabled for payment processing while preserving all existing 
+          vault associations, payment acceptance, and historical transaction data.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContractConfig"
+        required: true
+      responses:
+        "200":
+          description: |-
+            Contract configuration updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contract"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "400":
+          $ref: "#/components/responses/InvalidRequestResponse"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  # Vault
+  /v1/vault:
+    get:
+      operationId: GetVaults
+      summary: List Vaults
+      description: |-
+        Retrieves all vault configurations.
+        This endpoint returns a list of all vault configurations, which are essential for
+        organizing and processing payments while maintaining compliance.
+      tags:
+        - Vault
+      responses:
+        "200":
+          description: |-
+            Vault list retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Vault"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  /v1/vault/{vaultId}:
+    get:
+      operationId: GetVault
+      summary: Get Vault
+      description: |-
+        Retrieves configuration details for a specific vault.
+        This endpoint returns detailed configuration information for a specific vault,
+        which is essential for organizing and processing payments while maintaining compliance.
+      tags:
+        - Vault
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+      responses:
+        "200":
+          description: |-
+            Vault details retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vault"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+    put:
+      operationId: SetVault
+      summary: Create or Update Vault
+      description: |-
+        Updates or creates the configuration for a vault with {vaultId}. This operation 
+        will fully replace the existing configuration if the vault exists, or create
+        a new vault if it does not.
+      tags:
+        - Vault
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VaultConfig"
+        description: |-
+          Vault configuration with the fields to be updated with non-default values. All 
+          non-specified fields will be set with the default values. The 'contract-ids' 
+          list can be used to add or remove contract subscriptions. The 'enabled' field 
+          can be used to activate or deactivate the vault.
+        required: true
+      responses:
+        "200":
+          description: |-
+            Vault configuration updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vault"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "400":
+          $ref: "#/components/responses/InvalidRequestResponse"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+    patch:
+      operationId: ConfigVault
+      summary: Partially Update Vault Configuration
+      description: |-
+        Updates specific fields of an existing vault configuration. 
+        Only provided properties will be modified.
+        Returns the updated vault configuration.
+      tags:
+        - Vault
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+      requestBody:
+        description: |-
+          Partial vault configuration containing only the fields to be updated. The 'contract-ids'
+          list can be used to modify vault subscriptions by adding or removing contract associations.
+          The 'enabled' field can be used to activate or deactivate the vault for new operations.
+          Only the provided fields will be modified, preserving all other existing configuration
+          settings.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VaultConfig"
+        required: true
+      responses:
+        "200":
+          description: |-
+            Vault configuration partially updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vault"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "400":
+          $ref: "#/components/responses/InvalidRequestResponse"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+    delete:
+      operationId: ArchiveVault
+      summary: Archive Vault
+      description: |-
+        Deactivates a vault while preserving historical data.
+      tags:
+        - Vault
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+      responses:
+        "200":
+          description: |-
+            Vault archived successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vault"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  # Vault - Contract Subscription
+  /v1/vault/{vaultId}/contract/{assetUnit}/{networkId}:
+    put:
+      operationId: VaultSubscribeContract
+      summary: Subscribe Contract to Vault
+      description: |-
+        Associates a smart contract with a vault.
+      tags:
+        - Vault - Contract Subscription
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+        - $ref: "#/components/parameters/AssetUnitParam"
+        - $ref: "#/components/parameters/NetworkIdParam"
+      responses:
+        "200":
+          description: |-
+            Contract successfully subscribed to vault.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vault"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+    delete:
+      operationId: VaultUnsubscribeContract
+      summary: Unsubscribe Contract from Vault
+      description: |-
+        Removes association between a contract and vault.
+      tags:
+        - Vault - Contract Subscription
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+        - $ref: "#/components/parameters/AssetUnitParam"
+        - $ref: "#/components/parameters/NetworkIdParam"
+      responses:
+        "200":
+          description: |-
+            Contract successfully unsubscribed from vault.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Vault"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  # Vault - Payment
+  /v1/vault/{vaultId}/payment/estimate:
+    post:
+      operationId: VaultGetPaymentEstimate
+      summary: Generate Payment Estimate
+      description: |-
+        Calculates payment scenarios for specified contracts and amounts.
+        Requires at least one contract-amount pair in the request body.
+      tags:
+        - Vault - Payment
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              minItems: 1
+              items:
+                $ref: "#/components/schemas/ContractAmountFormat"
+        description: |-
+          List of contract-amount pairs for which to generate payment estimates. Must contain
+          at least one contract-amount pair. Each contract must be subscribed to the vault.
+          The amounts should represent the desired payment values in the contract's native units.
+        required: true
+      responses:
+        "200":
+          description: |-
+            Payment estimate generated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentEstimate"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "400":
+          $ref: "#/components/responses/InvalidRequestResponse"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  /v1/vault/{vaultId}/payment/acceptance:
+    put:
+      operationId: CreatePaymentAcceptance
+      summary: Create Payment Acceptance
+      description: |-
+        Initiates a new payment acceptance process.
+      tags:
+        - Vault - Payment
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentAcceptanceConfigFormat"
+        description: |-
+          Payment acceptance configuration including required payment scenarios and optional
+          order context. The 'price-scenarios' list must contain at least one contract-amount
+          pair and all contracts must be subscribed to the vault. Optional 'order' provides
+          commercial context, and 'documents' can reference existing compliance documents.
+        required: true
+      responses:
+        "201":
+          description: |-
+            Payment acceptance created successfully.
+          headers:
+            Location:
+              description: URL of the created payment acceptance.
+              schema:
+                type: string
+                format: uri
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentAcceptance"
+        "400":
+          $ref: "#/components/responses/InvalidRequestResponse"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  /v1/vault/{vaultId}/payment/acceptance/{paymentAcceptanceId}:
+    get:
+      operationId: GetPaymentAcceptance
+      summary: Get Payment Acceptance
+      description: |-
+        Retrieves details of an existing payment acceptance.
+      tags:
+        - Vault - Payment
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+        - $ref: "#/components/parameters/PaymentAcceptanceIdParam"
+      responses:
+        "200":
+          description: |-
+            Payment acceptance details retrieved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentAcceptance"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+    patch:
+      operationId: UpdatePaymentAcceptance
+      summary: Update Payment Acceptance
+      description: |-
+        Modifies configuration of an existing payment acceptance.
+      tags:
+        - Vault - Payment
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+        - $ref: "#/components/parameters/PaymentAcceptanceIdParam"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentAcceptanceConfigFormat"
+        description: |-
+          Partial payment acceptance configuration for updates. Can be used to modify
+          the 'documents' list to add or remove compliance document associations, or to
+          update 'order' information. Core price scenarios cannot be modified after 
+          creation.
+        required: true
+      responses:
+        "200":
+          description: |-
+            Payment acceptance updated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentAcceptance"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "400":
+          $ref: "#/components/responses/InvalidRequestResponse"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+    delete:
+      operationId: ArchivePaymentAcceptance
+      summary: Archive Payment Acceptance
+      description: |-
+        Deactivates a payment acceptance while preserving historical records.
+      tags:
+        - Vault - Payment
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+        - $ref: "#/components/parameters/PaymentAcceptanceIdParam"
+      responses:
+        "200":
+          description: |-
+            Payment acceptance archived successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentAcceptance"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  # Vault - Payment - Acceptance - Document
+  /v1/vault/{vaultId}/payment/acceptance/{paymentAcceptanceId}/document/{documentId}:
+    put:
+      operationId: LinkPaymentAcceptanceDocument
+      summary: Link Document to Payment Acceptance
+      description: |-
+        Associates a document with a payment acceptance.
+        Supported document types: personal identification, entity documentation, 
+        wallet verification data.
+      tags:
+        - Vault - Payment
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+        - $ref: "#/components/parameters/PaymentAcceptanceIdParam"
+        - $ref: "#/components/parameters/DocumentIdParam"
+      responses:
+        "200":
+          description: |-
+            Document successfully linked to payment acceptance.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentAcceptance"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "400":
+          $ref: "#/components/responses/InvalidRequestResponse"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+    delete:
+      operationId: UnlinkPaymentAcceptanceDocument
+      summary: Unlink Document from Payment Acceptance
+      description: |-
+        Removes document association from active consideration in payment acceptance
+        while retaining it for audit purposes.
+      tags:
+        - Vault - Payment
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+        - $ref: "#/components/parameters/PaymentAcceptanceIdParam"
+        - $ref: "#/components/parameters/DocumentIdParam"
+      responses:
+        "200":
+          description: |-
+            Document successfully unlinked from payment acceptance.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentAcceptance"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "400":
+          $ref: "#/components/responses/InvalidRequestResponse"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  # Vault - Document
+  /v1/vault/{vaultId}/document:
+    put:
+      operationId: SubmitDocument
+      summary: Submit Document
+      description: |-
+        Submits a new document for verification.
+        Supported types: personal identification, entity documentation, 
+        wallet verification data.
+      tags:
+        - Vault - Document
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentConfig"
+        description: |-
+          Complete document configuration including document type and content. The 'type' field
+          determines the document category (PersonV1, CustodialV1, or NonCustodialV1), and the
+          'data' field contains the corresponding document data structure with all required fields.
+        required: true
+      responses:
+        "201":
+          description: |-
+            Document submitted successfully.
+          headers:
+            Location:
+              description: URL of the submitted document.
+              schema:
+                type: string
+                format: uri
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+        "400":
+          $ref: "#/components/responses/InvalidRequestResponse"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  /v1/vault/{vaultId}/document/{documentId}:
+    get:
+      operationId: GetDocument
+      summary: Get Document
+      description: |-
+        Retrieves metadata and content of a document 
+        including validation status and reviewer comments.
+      tags:
+        - Vault - Document
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+        - $ref: "#/components/parameters/DocumentIdParam"
+      responses:
+        "200":
+          description: |-
+            Document retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+    delete:
+      operationId: ArchiveDocument
+      summary: Archive Document
+      description: |-
+        Deactivates document from active consideration while 
+        retaining it for audit purposes.
+      tags:
+        - Vault - Document
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+        - $ref: "#/components/parameters/DocumentIdParam"
+      responses:
+        "200":
+          description: |-
+            Document archived successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  # Velocities
+  /v1/account/velocity-limits:
+    get:
+      operationId: GetAccountVelocityLimits
+      summary: List Account Velocity Limits
+      description: |-
+        Returns all velocity limits configured at the account scope, ordered by
+        window in ascending order.
+      tags:
+        - Velocity
+      responses:
+        "200":
+          description: Velocity limits retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VelocityLimitFormat"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+    post:
+      operationId: SetAccountVelocityLimit
+      summary: Create or Update Account Velocity Limit
+      description: |-
+        Upserts a velocity limit at the account scope, keyed by `windowMinutes`.
+        Setting `windowMinutes` to 0 means "single payment cap" — no time aggregation.
+      tags:
+        - Velocity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VelocityLimitFormat"
+        required: true
+      responses:
+        "200":
+          description: Velocity limit upserted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VelocityLimitFormat"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "400":
+          $ref: "#/components/responses/InvalidRequestResponse"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  /v1/account/velocity-limits/{windowMinutes}:
+    delete:
+      operationId: DeleteAccountVelocityLimit
+      summary: Delete Account Velocity Limit
+      description: |-
+        Removes the account velocity limit for the given window. Idempotent —
+        returns 204 even if the limit does not exist.
+      tags:
+        - Velocity
+      parameters:
+        - $ref: "#/components/parameters/VelocityWindowMinutesParam"
+      responses:
+        "204":
+          description: Velocity limit removed (or absent).
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  /v1/vault/{vaultId}/velocity-limits:
+    get:
+      operationId: GetVaultVelocityLimits
+      summary: List Vault Velocity Limits
+      tags:
+        - Velocity
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+      responses:
+        "200":
+          description: Velocity limits retrieved successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/VelocityLimitFormat"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+    post:
+      operationId: SetVaultVelocityLimit
+      summary: Create or Update Vault Velocity Limit
+      tags:
+        - Velocity
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VelocityLimitFormat"
+        required: true
+      responses:
+        "200":
+          description: Velocity limit upserted successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VelocityLimitFormat"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "400":
+          $ref: "#/components/responses/InvalidRequestResponse"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  /v1/vault/{vaultId}/velocity-limits/{windowMinutes}:
+    delete:
+      operationId: DeleteVaultVelocityLimit
+      summary: Delete Vault Velocity Limit
+      tags:
+        - Velocity
+      parameters:
+        - $ref: "#/components/parameters/VaultIdParam"
+        - $ref: "#/components/parameters/VelocityWindowMinutesParam"
+      responses:
+        "204":
+          description: Velocity limit removed (or absent).
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+  # QR-Code - Transaction
+  /v1/qrcode/transaction:
+    post:
+      operationId: GenerateWalletQrCodes
+      summary: Generate QR-Codes for wallets
+      description: |-
+        Generates the QR-Codes to be used by a wallet to help on the creation of a
+        transaction request.
+      tags:
+        - QR-Code
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QrCodeTransactionRequest"
+        description: |-
+          Contract-amount pair for which to generate the qr-codes.
+          The amount should represent the desired payment value in the contract's unit.
+        required: true
+      responses:
+        "200":
+          description: |-
+            QR-Code generated successfully.
+          content:
+            application/json:
+              schema:
+                type: array
+                minItems: 1
+                items:
+                  $ref: "#/components/schemas/QrCode"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        "400":
+          $ref: "#/components/responses/InvalidRequestResponse"
+        "401":
+          $ref: "#/components/responses/MissingAuthorizationResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundResponse"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
+components:
+  securitySchemes:
+    dpop-auth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: |-
+        **DPoP-bound Token.**
+        A token bound to a public key and the current request.
+        Must be prefixed with `DPoP ` (e.g., `Authorization: DPoP eyJhbGciOiJ...`).
+        **When using this format, the `DPoP` header is ALSO REQUIRED as proof.**
+    dpop-proof:
+      type: apiKey
+      in: header
+      name: DPoP
+      description: |-
+        **Demonstrating Proof-of-Possession (DPoP) Token.**
+        **Required only when the `Authorization` header uses the `DPoP` prefix.**
+        A signed JWT that proves the client holds the private key associated with the public key
+        bound to the access token. It protects against token replay and is cryptographically
+        bound to the specific HTTP method and URL of this request.
+
+  headers:
+    "CacheControlHeader":
+      description: |-
+        Cache control directive instructing clients and intermediaries not to store
+        response data due to sensitive financial and compliance information. This header
+        is included in all successful responses to ensure that payment details, personal
+        identification data, and transaction information are not cached by browsers,
+        proxies, or other intermediaries for security and privacy protection.
+      schema:
+        type: string
+        enum:
+          - no-store
+
+  parameters:
+    "NetworkIdParam":
+      in: path
+      name: networkId
+      description: |-
+        Unique identifier for a specific blockchain network (e.g., 'ethereum', 'algorand').
+        Used to target operations on a particular network when managing contracts,
+        assets, or vault subscriptions. Must match an existing configured network.
+      schema:
+        $ref: "#/components/schemas/NetworkId"
+      required: true
+    "AssetUnitParam":
+      in: path
+      name: assetUnit
+      description: |-
+        Ticker symbol for a digital asset (e.g., 'EUR', 'USDC', 'ETH', 'BTC').
+        Used to identify the specific asset for contract operations, payment
+        processing, and vault management. Must match an existing configured asset.
+      schema:
+        $ref: "#/components/schemas/AssetUnit"
+      required: true
+    "VaultIdParam":
+      in: path
+      name: vaultId
+      description: |-
+        Unique identifier for a vault container that manages payment acceptance,
+        documents, and contract subscriptions. Used across all vault-related operations
+        including payment processing, document management, and configuration updates.
+      schema:
+        $ref: "#/components/schemas/VaultId"
+      required: true
+    "VelocityWindowMinutesParam":
+      in: path
+      name: windowMinutes
+      description: |-
+        Rolling window length in minutes used as the unique key for a velocity limit
+        within its scope. Use 0 for "single payment cap" (no time aggregation).
+      schema:
+        type: integer
+        minimum: 0
+      required: true
+    "PaymentAcceptanceIdParam":
+      in: path
+      name: paymentAcceptanceId
+      description: |-
+        Unique identifier for a payment acceptance within a vault. Used to track
+        specific payment requests, monitor transaction status, manage associated
+        documents, and retrieve payment history and compliance information.
+      schema:
+        $ref: "#/components/schemas/PaymentAcceptanceId"
+      required: true
+    "DocumentIdParam":
+      in: path
+      name: documentId
+      description: |-
+        Unique identifier for a compliance document within a vault. Used for
+        document retrieval, status checking, linking to payment acceptance,
+        and managing the document verification lifecycle.
+      schema:
+        $ref: "#/components/schemas/DocumentId"
+      required: true
+
+  responses:
+    "ConflictResponse":
+      description: |-
+        The request could not be completed because the target resource already exists.
+        This typically occurs when attempting to create a resource that duplicates an
+        existing one, such as a duplicate identifier or a resource that violates
+        uniqueness constraints.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorList"
+    "MissingAuthorizationResponse":
+      description: |-
+        Authentication credentials are missing, invalid, or expired. The request lacks
+        proper authorization headers or tokens. Clients should verify their authentication
+        setup and ensure valid credentials are provided in subsequent requests.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorList"
+    "InvalidRequestResponse":
+      description: |-
+        The request contains malformed data, invalid parameters, or violates API constraints.
+        This includes validation errors, incorrect data types, missing required fields,
+        or values outside acceptable ranges. Check the error details for specific issues.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorList"
+    "ForbiddenResponse":
+      description: |-
+        The authenticated user lacks sufficient permissions to perform this operation.
+        While authentication was successful, the user's role or access level does not
+        permit the requested action. Contact an administrator for access rights.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorList"
+    "NotFoundResponse":
+      description: |-
+        The requested resource does not exist or has been removed. This may indicate
+        an incorrect ID, a resource that was deleted, or a path that doesn't match
+        any configured endpoints. Verify the resource identifier and try again.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorList"
+    "DefaultResponse":
+      description: |-
+        An unexpected server error occurred while processing the request. This indicates
+        an internal system issue that prevented successful completion. The error details
+        may provide additional context for debugging and support purposes.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorList"
+
+  schemas:
+    # Common
+    "FormalName":
+      type: string
+      description: |-
+        Human-readable resource identifier that follows standard naming conventions
+        for display purposes. Used for network names, asset names, and other user-facing
+        identifiers that need to be presentable in user interfaces and documentation.
+      minLength: 1
+      maxLength: 32
+    "NetworkAddress":
+      type: string
+      description: |-
+        Blockchain-specific address format used for cryptocurrency transactions.
+        The exact format varies by network (e.g., Ethereum uses hexadecimal addresses
+        starting with 0x, Bitcoin uses base58 encoding). Used for contract addresses,
+        wallet addresses, and payment destinations.
+      minLength: 1
+      maxLength: 64
+    "UnsignedInteger":
+      type: string
+      description: |-
+        String representation of a non-negative integer used for precise handling
+        of large numbers without floating-point precision issues.
+        Supports values up to 78 digits to accommodate various asset denominations
+        and high-precision calculations.
+      pattern: "^[0-9]+$"
+      minLength: 1
+      maxLength: 78
+    "Number":
+      type: string
+      description: |-
+        String representation of a decimal number used for precise handling of large 
+        numbers without floating-point precision issues.
+        Supports values up to 78 digits to accommodate various asset denominations
+        and high-precision calculations.
+      pattern: "^[0-9]+(?:\\.[0-9]+)?$"
+      minLength: 1
+      maxLength: 79
+    "Amount":
+      type: object
+      description: |-
+        Precise representation of a amount combining a raw value with decimal precision
+        information. This structure ensures accurate handling of token amounts across 
+        different assets with varying decimal places.
+      allOf:
+        - $ref: "#/components/schemas/AmountValue"
+        - $ref: "#/components/schemas/AmountRaw"
+    "AmountFormat":
+      type: object
+      description: |-
+        Precise representation of a amount combining a raw value with decimal precision
+        information. This structure ensures accurate handling of token amounts across
+        different assets with varying decimal places.
+        Accepts value only, raw+decimals only, or both (validated for consistency).
+      anyOf:
+        - $ref: "#/components/schemas/AmountValue"
+        - $ref: "#/components/schemas/AmountRaw"
+    "AmountValue":
+      type: object
+      properties:
+        "value":
+          $ref: "#/components/schemas/Number"
+          description: |-
+            Amount value in the unit of the asset (e.g., btc).
+      required:
+        - "value"
+    "AmountRaw":
+      type: object
+      properties:
+        "raw":
+          $ref: "#/components/schemas/UnsignedInteger"
+          description: |-
+            Raw amount value in the smallest unit of the asset (e.g., satoshi for btc).
+        "decimals":
+          $ref: "#/components/schemas/Decimals"
+          description: |-
+            Number of decimal places to apply when displaying the amount to users.
+      required:
+        - "raw"
+        - "decimals"
+    "Decimals":
+      type: integer
+      description: |-
+        Number of decimal places used for displaying amounts.
+        For example, USDC typically uses 6 decimals, while Ethereum uses 18.
+        This determines how the raw value should be formatted for user presentation.
+      minimum: 0
+      maximum: 77
+    "Time":
+      type: integer
+      description: |-
+        Time in milliseconds representing an amount of time.
+        Used for expiration cut-offs, and other time-sensitive operations throughout 
+        the payment lifecycle.
+      minimum: 0
+    "Timestamp":
+      type: integer
+      description: |-
+        UNIX timestamp in milliseconds representing a specific point in time.
+        Used for tracking creation dates, expiration times, transaction timestamps,
+        and other time-sensitive operations throughout the payment lifecycle.
+      minimum: 0
+    "Expire":
+      type: object
+      properties:
+        "at":
+          $ref: "#/components/schemas/Timestamp"
+          description: |-
+            Timestamp when this payment scenario expires and is no longer valid.
+        "in":
+          $ref: "#/components/schemas/Time"
+          description: |-
+            Time remaining until this payment scenario expires and is no longer valid.
+      required:
+        - "at"
+        - "in"
+    "Enabled":
+      type: boolean
+      description: |-
+        Boolean flag indicating whether a resource is active and operational.
+        When true, the resource can be used for new operations. When false,
+        the resource is disabled but historical data is preserved.
+    "URL":
+      type: string
+      description: |-
+        Valid HTTP or HTTPS URL pointing to external resources such as
+        asset websites, network documentation, or media assets. Must include
+        the protocol scheme and be properly formatted for web access.
+      format: uri
+      pattern: "^https?://.+$"
+    "Version":
+      type: object
+      description: |-
+        Version tracking metadata for resources that change over time.
+        Provides sequence numbering and timestamps for creation and modification
+        to support optimistic locking and change tracking.
+      properties:
+        "sequence":
+          type: integer
+          description: |-
+            Monotonically increasing version number that increments with each update.
+            Used for optimistic concurrency control and change detection.
+          minimum: 0
+        "created-at":
+          $ref: "#/components/schemas/Timestamp"
+          description: |-
+            Timestamp when this resource was initially created.
+        "updated-at":
+          $ref: "#/components/schemas/Timestamp"
+          description: |-
+            Timestamp when this resource was last modified.
+      required:
+        - "sequence"
+        - "created-at"
+        - "updated-at"
+    "UUID":
+      type: string
+      description: |-
+        Universally unique identifier used for resources
+        that require globally unique identification. Provides 128-bit uniqueness
+        suitable for distributed systems and cross-system integration.
+      pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+      minLength: 36
+      maxLength: 36
+      format: uuid
+    "Date":
+      type: string
+      description: |-
+        Calendar date in ISO 8601 format (YYYY-MM-DD) without time information.
+        Used for birth dates, incorporation dates, and other date-only fields
+        in compliance documentation and identity verification.
+      pattern: "^[0-9]{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[1-2][0-9]|3[0-1])$"
+      minLength: 10
+      maxLength: 10
+    "Street":
+      type: string
+      description: |-
+        Complete street address including building number, street name, apartment
+        or suite information. Used in compliance documents for physical address
+        verification and identity confirmation processes.
+      minLength: 1
+      maxLength: 200
+    "PostalCode":
+      type: string
+      description: |-
+        Geographic postal or ZIP code for address verification. Format varies
+        by country (e.g., 5-digit ZIP codes in US, alphanumeric postal codes
+        in Canada). Used for compliance and identity verification.
+      minLength: 1
+      maxLength: 20
+    "Region":
+      type: string
+      description: |-
+        Administrative subdivision such as state, province, prefecture, or region.
+        Used in address information for compliance documents and geographic
+        identification in identity verification processes.
+      minLength: 1
+      maxLength: 40
+    "Country":
+      type: string
+      description: |-
+        Country name or ISO 3166-1 alpha-2 country code for geographic identification.
+        Used in address information, birth records, and incorporation details
+        for compliance and identity verification purposes.
+      minLength: 2
+      maxLength: 2
+    "Note":
+      type: string
+      description: |-
+        Optional free-form text field for additional context, remarks, or
+        annotations. Provides flexibility for storing supplementary information
+        that doesn't fit into structured fields.
+      maxLength: 800
+
+    # Media
+    "MediaMap":
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/Media"
+    "Media":
+      type: object
+      properties:
+        "type":
+          $ref: "#/components/schemas/MediaType"
+        "url":
+          $ref: "#/components/schemas/URL"
+        "metadata":
+          $ref: "#/components/schemas/MediaMetadata"
+      required:
+        - "type"
+        - "url"
+    "MediaType":
+      type: string
+      enum:
+        - "image"
+    "MediaMetadata":
+      type: object
+
+    # QR-Code
+    "QrCodeTransactionRequest":
+      type: object
+      description: |-
+        Request object containing the essential payment parameters needed to generate
+        a blockchain transaction QR code. Specifies the destination, amount, and token
+        contract details that will be encoded into a scannable QR format for cryptocurrency
+        wallet applications.
+      properties:
+        "contract-id":
+          $ref: "#/components/schemas/ContractId"
+        "amount":
+          $ref: "#/components/schemas/AmountFormat"
+        "address":
+          $ref: "#/components/schemas/NetworkAddress"
+      required:
+        - "contract-id"
+        - "amount"
+        - "address"
+    "QrCode":
+      type: object
+      description: |-
+        QR code representation for facilitating blockchain transactions.
+        Contains encoded payment instructions that can be scanned by cryptocurrency wallets
+        to initiate payments. Supports different QR code standards and encoding formats.
+      properties:
+        "type":
+          $ref: "#/components/schemas/QrCodeType"
+        "content":
+          type: string
+          description: |-
+            The encoded content of the QR code containing payment instructions
+            in a wallet-readable format.
+        "encoding":
+          $ref: "#/components/schemas/QrCodeEncoding"
+        "metadata":
+          $ref: "#/components/schemas/QrCodeMetadata"
+      required:
+        - "type"
+        - "content"
+        - "encoding"
+    "QrCodeType":
+      type: string
+      description: |-
+        Categorization of QR codes based on their payment functionality:
+        - 'crypto-address': Simple wallet address QR code
+        - 'crypto-payment': Payment request with embedded amount and asset details
+      enum:
+        - "crypto-address"
+        - "crypto-payment"
+    "QrCodeEncoding":
+      type: string
+      description: |-
+        Data encoding format used in the QR code content. 
+        Currently supports raw byte encoding for maximum compatibility 
+        with cryptocurrency wallets.
+      enum:
+        - "byte"
+    "QrCodeMetadata":
+      type: object
+      description: |-
+        Additional technical metadata related with the QR code .
+
+    # Traits
+    "Traits":
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/TraitProperties"
+    "TraitProperties":
+      type: object
+      additionalProperties: true
+    "PaymentAcceptancePriceTrait":
+      type: object
+      properties:
+        "min-amount":
+          $ref: "#/components/schemas/Amount"
+        "max-amount":
+          $ref: "#/components/schemas/Amount"
+    "PaymentAcceptancePayTrait":
+      type: object
+      properties:
+        "min-amount":
+          $ref: "#/components/schemas/Amount"
+        "max-amount":
+          $ref: "#/components/schemas/Amount"
+
+    # Status/Error
+    "Status":
+      type: object
+      description: |-
+        Simple service status response used by health and readiness endpoints
+        to indicate operational state. Provides a standardized way to communicate
+        service availability to monitoring systems and load balancers.
+      properties:
+        "status":
+          type: string
+          description: |-
+            Service status indicator. Typically returns "ok" when the service
+            is operational and ready to handle requests.
+          minLength: 1
+          maxLength: 8
+      required:
+        - "status"
+      example:
+        "status": "ok"
+    "Error":
+      type: object
+      description: |-
+        Standardized error response structure providing categorized error codes
+        and human-readable messages. Used consistently across all API endpoints
+        to help clients understand and handle different types of failures.
+      properties:
+        "code":
+          type: string
+          description: |-
+            Structured error code in AAA-999 format where AAA represents the error
+            category (e.g., AUT for authentication, VAL for validation) and 999
+            is a specific error number. Used for programmatic error handling.
+          pattern: "^[a-zA-Z]{3}-[0-9]{3}$"
+          minLength: 7
+          maxLength: 7
+        "message":
+          type: string
+          description: |-
+            Human-readable error description explaining what went wrong and
+            potentially how to resolve the issue. Suitable for displaying
+            to end users or logging for debugging purposes.
+          minLength: 1
+          maxLength: 256
+      required:
+        - "code"
+        - "message"
+      example:
+        code: "AUT-401"
+        message: "Missing authorization token"
+    "ErrorList":
+      type: array
+      description: |-
+        Collection of error responses.
+      items:
+        $ref: "#/components/schemas/Error"
+      maxItems: 16
+
+    # Network
+    "NetworkId":
+      type: string
+      description: |-
+        Unique lowercase alphanumeric identifier for a network.
+        Examples include 'ethereum' for Ethereum, 'algorand' for Algorand,
+        or 'bitcoin' for Bitcoin. Used throughout the API to specify which 
+        network operations should target.
+      pattern: "^[a-z0-9]+(-[a-z0-9]+)*$"
+      minLength: 1
+      maxLength: 32
+    "NetworkMediaMap":
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/MediaMap"
+        - type: object
+          properties:
+            "logo-light":
+              $ref: "#/components/schemas/Media"
+            "logo-dark":
+              $ref: "#/components/schemas/Media"
+          required:
+            - "logo-light"
+            - "logo-dark"
+    "NetworkStatus":
+      type: string
+      description: |-
+        Operational status of a blockchain network indicating its availability
+        for new operations and payment processing.
+      enum:
+        - "active" # Network is fully operational and accepting new transactions
+        - "inactive" # Network is temporarily disabled but may be reactivated
+        - "discontinued" # Network is permanently discontinued and will not be reactivated
+    "NetworkInfo":
+      type: object
+      description: |-
+        Comprehensive metadata about a network including display information,
+        operational status, supported assets, and version tracking.
+        Provides all information needed to understand network capabilities.
+      properties:
+        "name":
+          $ref: "#/components/schemas/FormalName"
+        "media":
+          $ref: "#/components/schemas/NetworkMediaMap"
+        "website":
+          $ref: "#/components/schemas/URL"
+        "status":
+          $ref: "#/components/schemas/NetworkStatus"
+        "assets":
+          type: array
+          description: |-
+            Supported assets on this network.
+          items:
+            $ref: "#/components/schemas/AssetUnit"
+        "time-to-settle":
+          $ref: "#/components/schemas/Time"
+          description: |-
+            The duration from transaction initiation to its complete and successful
+            execution, including the final, irreversible recording of its outcome.
+        "version":
+          $ref: "#/components/schemas/Version"
+      required:
+        - "name"
+        - "media"
+        - "website"
+        - "status"
+        - "assets"
+        - "time-to-settle"
+        - "version"
+    "NetworkConfig":
+      type: object
+      description: |-
+        Configuration parameters that control network behavior and availability.
+        Currently supports enabling/disabling the network for new payment processing
+        while preserving existing data and configurations.
+      properties:
+        "enabled":
+          $ref: "#/components/schemas/Enabled"
+          description: |-
+            Controls whether this network is available for new payment processing.
+            Defaults to true when not specified.
+    "Network":
+      type: object
+      description: |-
+        Complete network definition combining identification, metadata, and
+        configuration. Represents a supported network.
+      properties:
+        "id":
+          $ref: "#/components/schemas/NetworkId"
+        "info":
+          $ref: "#/components/schemas/NetworkInfo"
+        "config":
+          $ref: "#/components/schemas/NetworkConfig"
+      required:
+        - "id"
+        - "info"
+        - "config"
+    "NetworkExplorer":
+      type: object
+      description: |-
+        URL templates for a network's block explorer.
+        Use {value} as a placeholder for the address or transaction ID.
+      properties:
+        "address-url":
+          type: string
+          description: |-
+            URL template for address lookup. Replace {value} with the address.
+        "transaction-url":
+          type: string
+          description: |-
+            URL template for transaction lookup. Replace {value} with the transaction ID.
+      required:
+        - "address-url"
+        - "transaction-url"
+
+    # Asset
+    "AssetUnit":
+      type: string
+      description: |-
+        Ticker symbol for digital asset.
+      pattern: "^[A-Z0-9]+$"
+      minLength: 3
+      maxLength: 8
+    "AssetMediaMap":
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/MediaMap"
+        - type: object
+          properties:
+            "logo-light":
+              $ref: "#/components/schemas/Media"
+            "logo-dark":
+              $ref: "#/components/schemas/Media"
+          required:
+            - "logo-light"
+            - "logo-dark"
+    "AssetStatus":
+      type: string
+      description: |-
+        Operational status of digital asset.
+      enum:
+        - "active"
+        - "inactive"
+        - "discontinued"
+    "AssetInfo":
+      type: object
+      description: |-
+        Digital asset metadata.
+      properties:
+        "name":
+          $ref: "#/components/schemas/FormalName"
+        "media":
+          $ref: "#/components/schemas/AssetMediaMap"
+        "website":
+          $ref: "#/components/schemas/URL"
+        "status":
+          $ref: "#/components/schemas/AssetStatus"
+        "networks":
+          type: array
+          description: |-
+            Supported networks for this asset.
+          items:
+            $ref: "#/components/schemas/NetworkId"
+        "version":
+          $ref: "#/components/schemas/Version"
+      required:
+        - "name"
+        - "media"
+        - "website"
+        - "status"
+        - "networks"
+        - "version"
+    "AssetConfig":
+      type: object
+      description: |-
+        Asset configuration parameters.
+      properties:
+        "enabled":
+          $ref: "#/components/schemas/Enabled"
+    "Asset":
+      type: object
+      description: |-
+        Complete digital asset definition combining identification, metadata, and 
+        configuration. Represents a supported asset that can be used in payment 
+        processing across multiple networks.
+      properties:
+        "unit":
+          $ref: "#/components/schemas/AssetUnit"
+        "info":
+          $ref: "#/components/schemas/AssetInfo"
+        "config":
+          $ref: "#/components/schemas/AssetConfig"
+      required:
+        - "unit"
+        - "info"
+        - "config"
+
+    # Contract
+    "ContractId":
+      type: object
+      description: |-
+        Composite identifier uniquely identifying a contract by combining
+        the asset it handles with the network where it's transacted.
+        This combination ensures contracts are uniquely identified across all
+        supported networks and assets.
+      properties:
+        "asset-unit":
+          $ref: "#/components/schemas/AssetUnit"
+        "network-id":
+          $ref: "#/components/schemas/NetworkId"
+      required:
+        - "asset-unit"
+        - "network-id"
+    "ContractTraits":
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/Traits"
+        - type: object
+          properties:
+            "payment-acceptance-price-trait":
+              $ref: "#/components/schemas/PaymentAcceptancePriceTrait"
+            "payment-acceptance-pay-trait":
+              $ref: "#/components/schemas/PaymentAcceptancePayTrait"
+    "ContractMediaMap":
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/MediaMap"
+        - type: object
+          properties:
+            "logo-light":
+              $ref: "#/components/schemas/Media"
+            "logo-dark":
+              $ref: "#/components/schemas/Media"
+          required:
+            - "logo-light"
+            - "logo-dark"
+    "ContractStatus":
+      type: string
+      description: |-
+        Operational status of a contract indicating its availability
+        for payment processing.
+      enum:
+        - "active" # Contract is fully operational and available for payment processing
+        - "inactive" # Contract is disabled but may be reactivated
+        - "discontinued" # Contract is permanently discontinued and will not be reactivated
+    "ContractInfo":
+      type: object
+      description: |-
+        Comprehensive metadata about a contract including deployment details,
+        subscribed vaults, operational status, and version tracking. Provides all
+        information needed to understand contract capabilities and current usage.
+      properties:
+        "vaults":
+          type: array
+          description: |-
+            List of vault identifiers that are currently subscribed to this contract
+            and can process payments using it.
+          items:
+            $ref: "#/components/schemas/VaultId"
+        "address":
+          $ref: "#/components/schemas/NetworkAddress"
+        "media":
+          $ref: "#/components/schemas/ContractMediaMap"
+        "minor-unit":
+          $ref: "#/components/schemas/Amount"
+        "traits":
+          $ref: "#/components/schemas/ContractTraits"
+        "note":
+          $ref: "#/components/schemas/Note"
+        "status":
+          $ref: "#/components/schemas/ContractStatus"
+        "version":
+          $ref: "#/components/schemas/Version"
+      required:
+        - "vaults"
+        - "address"
+        - "media"
+        - "minor-unit"
+        - "traits"
+        - "status"
+        - "version"
+    "ContractConfig":
+      type: object
+      description: |-
+        Configuration parameters that control contract behavior and availability.
+        Currently supports enabling/disabling the contract for new operations
+        while preserving existing vault subscriptions and historical data.
+      properties:
+        "enabled":
+          $ref: "#/components/schemas/Enabled"
+    "Contract":
+      type: object
+      description: |-
+        Complete contract definition combining identification, metadata,
+        and configuration. Represents a deployed contract that can process
+        payments for a specific asset on a specific blockchain network.
+      properties:
+        "id":
+          $ref: "#/components/schemas/ContractId"
+        "info":
+          $ref: "#/components/schemas/ContractInfo"
+        "config":
+          $ref: "#/components/schemas/ContractConfig"
+      required:
+        - "id"
+        - "info"
+        - "config"
+    "ContractAmount":
+      type: object
+      description: |-
+        Pairing of a specific contract with a precise amount value.
+        Used in **API responses** to provide complete amount information including
+        both display value and raw precision data.
+      properties:
+        "contract-id":
+          $ref: "#/components/schemas/ContractId"
+        "amount":
+          $ref: "#/components/schemas/Amount"
+      required:
+        - "contract-id"
+        - "amount"
+    "ContractAmountFormat":
+      type: object
+      description: |-
+        Pairing of a specific contract with a precise amount value.
+        Used in **API requests** to accept amount data in flexible formats,
+        allowing callers to provide either display value or raw precision data.
+      properties:
+        "contract-id":
+          $ref: "#/components/schemas/ContractId"
+        "amount":
+          $ref: "#/components/schemas/AmountFormat"
+      required:
+        - "contract-id"
+        - "amount"
+
+    # Vault
+    "VaultId":
+      type: string
+      description: |-
+        Unique vault identifier.
+      pattern: "^[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*$"
+      minLength: 1
+      maxLength: 36
+    "VaultInfo":
+      type: object
+      description: |-
+        Vault lifecycle metadata.
+      properties:
+        "archived-at":
+          $ref: "#/components/schemas/Timestamp"
+          description: |-
+            Timestamp of vault archival (null if active).
+        "version":
+          $ref: "#/components/schemas/Version"
+      required:
+        - "version"
+    "VaultConfig":
+      type: object
+      description: |-
+        Vault configuration parameters.
+      properties:
+        "contract-ids":
+          type: array
+          description: |-
+            Subscribed contracts (required for new vaults).
+          items:
+            $ref: "#/components/schemas/ContractId"
+        "enabled":
+          $ref: "#/components/schemas/Enabled"
+          description: |-
+            Vault activation status (default: true).
+    "Vault":
+      type: object
+      description: |-
+        Financial operations container
+      properties:
+        "id":
+          $ref: "#/components/schemas/VaultId"
+        "info":
+          $ref: "#/components/schemas/VaultInfo"
+        "config":
+          $ref: "#/components/schemas/VaultConfig"
+      required:
+        - "id"
+        - "info"
+        - "config"
+
+    # Vault - Document
+    "Document":
+      type: object
+      description: |-
+        Compliance document with validation lifecycle.
+      properties:
+        "id":
+          $ref: "#/components/schemas/DocumentId"
+        "info":
+          $ref: "#/components/schemas/DocumentInfo"
+        "config":
+          $ref: "#/components/schemas/DocumentConfig"
+      required:
+        - "id"
+        - "info"
+        - "config"
+    "DocumentId":
+      $ref: "#/components/schemas/UUID"
+    "DocumentInfo":
+      type: object
+      description: |-
+        Document metadata and associations.
+      properties:
+        "vault":
+          $ref: "#/components/schemas/VaultId"
+        "status":
+          $ref: "#/components/schemas/DocumentStatus"
+          description: |-
+            Current validation status.
+      required:
+        - "vault"
+        - "status"
+    "DocumentType":
+      type: string
+      description: |-
+        Compliance document classification.
+      enum:
+        - "PersonV1"
+        - "CustodialV1"
+        - "NonCustodialV1"
+    "DocumentConfig":
+      oneOf:
+        - $ref: "#/components/schemas/DocumentConfigPersonV1"
+        - $ref: "#/components/schemas/DocumentConfigCustodialV1"
+        - $ref: "#/components/schemas/DocumentConfigNonCustodialV1"
+      discriminator:
+        propertyName: "type"
+        mapping:
+          "PersonV1": "#/components/schemas/DocumentConfigPersonV1"
+          "CustodialV1": "#/components/schemas/DocumentConfigCustodialV1"
+          "NonCustodialV1": "#/components/schemas/DocumentConfigNonCustodialV1"
+    "DocumentConfigBase":
+      type: object
+      description: |-
+        Document content specification.
+      properties:
+        "type":
+          $ref: "#/components/schemas/DocumentType"
+      required:
+        - "type"
+    "DocumentConfigPersonV1":
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/DocumentConfigBase"
+        - type: object
+          properties:
+            "data":
+              $ref: "#/components/schemas/PersonV1"
+          required:
+            - "data"
+    "DocumentConfigCustodialV1":
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/DocumentConfigBase"
+        - type: object
+          properties:
+            "data":
+              $ref: "#/components/schemas/CustodialV1"
+          required:
+            - "data"
+    "DocumentConfigNonCustodialV1":
+      type: object
+      allOf:
+        - $ref: "#/components/schemas/DocumentConfigBase"
+        - type: object
+          properties:
+            "data":
+              $ref: "#/components/schemas/NonCustodialV1"
+          required:
+            - "data"
+    "DocumentStatus":
+      type: object
+      description: |-
+        Document validation state.
+      properties:
+        "id":
+          $ref: "#/components/schemas/DocumentStatusId"
+        "details":
+          $ref: "#/components/schemas/DocumentStatusDetails"
+        "expire":
+          $ref: "#/components/schemas/Expire"
+      required:
+        - "id"
+        - "details"
+    "DocumentStatusId":
+      type: string
+      description: |-
+        Document validation status category.
+      enum:
+        - "pending"
+        - "expired"
+        - "accepted"
+        - "rejected"
+        - "archived"
+    "DocumentStatusDetails":
+      type: string
+      description: |-
+        Human-readable validation details.
+      minLength: 1
+      maxLength: 400
+    "PersonV1":
+      oneOf:
+        - $ref: "#/components/schemas/PersonNaturalV1"
+        - $ref: "#/components/schemas/PersonLegalV1"
+      discriminator:
+        propertyName: "type"
+        mapping:
+          "PersonNaturalV1": "#/components/schemas/PersonNaturalV1"
+          "PersonLegalV1": "#/components/schemas/PersonLegalV1"
+    "PersonBase":
+      type: object
+      description: |-
+        Base identification document data common to both natural and legal persons.
+      properties:
+        "type":
+          $ref: "#/components/schemas/PersonType"
+        "name":
+          $ref: "#/components/schemas/PersonName"
+        "address":
+          $ref: "#/components/schemas/PersonAddress"
+      required:
+        - "type"
+        - "name"
+        - "address"
+      discriminator:
+        propertyName: "type"
+        mapping:
+          "PersonNaturalV1": "#/components/schemas/PersonNaturalV1"
+          "PersonLegalV1": "#/components/schemas/PersonLegalV1"
+    "PersonType":
+      type: string
+      description: |-
+        Person entity classification.
+      enum:
+        - "PersonNaturalV1"
+        - "PersonLegalV1"
+    "PersonName":
+      type: string
+      description: |-
+        Full legal name of person/entity.
+      minLength: 1
+      maxLength: 800
+    "PersonAddress":
+      type: object
+      description: |-
+        Complete physical address information used for identity verification
+        and compliance documentation. Includes all components necessary for
+        address validation and geographic identification.
+      properties:
+        "street":
+          $ref: "#/components/schemas/Street"
+        "postal-code":
+          $ref: "#/components/schemas/PostalCode"
+        "region":
+          $ref: "#/components/schemas/Region"
+        "country":
+          $ref: "#/components/schemas/Country"
+      required:
+        - "street"
+        - "postal-code"
+        - "region"
+        - "country"
+    "PersonNaturalV1":
+      description: |-
+        Natural person (individual) details.
+      allOf:
+        - $ref: "#/components/schemas/PersonBase"
+        - type: object
+          properties:
+            "id":
+              $ref: "#/components/schemas/PersonNaturalId"
+            "birth":
+              $ref: "#/components/schemas/PersonNaturalBirth"
+          required:
+            - "id"
+            - "birth"
+    "PersonNaturalId":
+      type: object
+      description: |-
+        Government-issued identification document details for individual
+        identity verification including document number, type, and issuing authority.
+      properties:
+        "number":
+          $ref: "#/components/schemas/PersonNaturalIdNumber"
+        "type":
+          $ref: "#/components/schemas/PersonNaturalIdType"
+        "issuer":
+          $ref: "#/components/schemas/PersonNaturalIdIssuer"
+      required:
+        - "number"
+        - "type"
+        - "issuer"
+    "PersonNaturalIdNumber":
+      type: string
+      description: |-
+        Identification document number.
+      minLength: 1
+      maxLength: 120
+    "PersonNaturalIdType":
+      type: string
+      description: |-
+        Identification document type.
+      enum:
+        - "NationalIdentityCard"
+        - "Passport"
+    "PersonNaturalIdIssuer":
+      type: string
+      description: |-
+        Identification issuing authority.
+      minLength: 1
+      maxLength: 40
+    "PersonNaturalBirth":
+      type: object
+      description: |-
+        Birth information.
+      properties:
+        "date":
+          $ref: "#/components/schemas/Date"
+        "region":
+          $ref: "#/components/schemas/Region"
+        "country":
+          $ref: "#/components/schemas/Country"
+      required:
+        - "date"
+        - "region"
+        - "country"
+    "PersonLegalV1":
+      description: |-
+        Legal entity (organization) details.
+      allOf:
+        - $ref: "#/components/schemas/PersonBase"
+        - type: object
+          properties:
+            "id":
+              $ref: "#/components/schemas/PersonLegalId"
+            "incorporation":
+              $ref: "#/components/schemas/PersonLegalIncorporation"
+          required:
+            - "id"
+            - "incorporation"
+    "PersonLegalId":
+      type: object
+      description: |-
+        Business registration and identification information for legal entities. 
+        Contains official registration details required for entity verification 
+        and compliance with business identification regulations.
+      properties:
+        "number":
+          $ref: "#/components/schemas/PersonLegalIdNumber"
+          description: |-
+            Official business registration or tax identification number.
+        "type":
+          $ref: "#/components/schemas/PersonLegalIdType"
+          description: |-
+            Type of business identification document or registration.
+        "issuer":
+          $ref: "#/components/schemas/PersonLegalIdIssuer"
+          description: |-
+            Government authority or agency that issued the business registration.
+      required:
+        - "number"
+        - "type"
+        - "issuer"
+    "PersonLegalIdNumber":
+      type: string
+      description: |-
+        Official business registration number, tax identification number, or 
+        other government-issued entity identifier exactly as it appears on 
+        official documentation.
+      minLength: 1
+      maxLength: 120
+    "PersonLegalIdType":
+      type: string
+      description: |-
+        Type of business identification document accepted for legal entity 
+        verification. Currently limited to tax identification documents 
+        but may be expanded to include other business registration types.
+      enum:
+        - "TaxId"
+    "PersonLegalIdIssuer":
+      type: string
+      description: |-
+        Government authority, tax agency, or business registration office 
+        that issued the legal entity identification. Used for verification 
+        and authenticity validation purposes.
+      minLength: 1
+      maxLength: 40
+    "PersonLegalIncorporation":
+      type: object
+      description: |-
+        Business incorporation and formation details required for legal entity 
+        verification. Must match information on official business registration 
+        documents and corporate filings.
+      properties:
+        "date":
+          $ref: "#/components/schemas/Date"
+          description: |-
+            Date of business incorporation or formation in ISO 8601 format (YYYY-MM-DD).
+        "region":
+          $ref: "#/components/schemas/Region"
+          description: |-
+            State, province, or administrative region where business was incorporated.
+        "country":
+          $ref: "#/components/schemas/Country"
+          description: |-
+            Country where business was incorporated or formed.
+      required:
+        - "date"
+        - "region"
+        - "country"
+    "CustodialV1":
+      type: object
+      description: |-
+        Compliance document for custodial wallet services where a third-party 
+        provider manages private keys and wallet operations on behalf of users. 
+        Contains provider identification for regulatory compliance and risk assessment.
+      properties:
+        "provider":
+          $ref: "#/components/schemas/FormalName"
+          description: |-
+            Name of the custodial wallet service provider. Must be a recognized 
+            and regulated financial service provider.
+    "NonCustodialV1":
+      type: object
+      description: |-
+        Compliance document for non-custodial (self-custody) wallets where users 
+        control their own private keys. Contains wallet address information for 
+        transaction verification and compliance monitoring.
+      properties:
+        "address":
+          $ref: "#/components/schemas/NetworkAddress"
+          description: |-
+            Blockchain address of the non-custodial wallet. Used for transaction 
+            verification and compliance monitoring purposes.
+      required:
+        - "address"
+
+    # Vault - Payment - Acceptance - Compliance
+    "Compliance":
+      type: object
+      description: |-
+        Comprehensive compliance status and requirements for payment acceptance. 
+        Tracks document submission requirements and validation status across 
+        all contracts involved in payment processing.
+      properties:
+        "scenarios":
+          type: array
+          description: |-
+            Contract-specific compliance requirements and current status for 
+            each asset-network combination in the payment acceptance.
+          items:
+            $ref: "#/components/schemas/ComplianceScenario"
+      required:
+        - "scenarios"
+    "ComplianceScenario":
+      type: object
+      description: |-
+        Compliance requirements and status for a specific contract within a 
+        payment acceptance. Tracks required document types, submitted documents, 
+        and overall compliance fulfillment status.
+      properties:
+        "contract-id":
+          $ref: "#/components/schemas/ContractId"
+          description: |-
+            Contract reference for which compliance requirements apply.
+        "required":
+          type: array
+          description: |-
+            List of document types that must be submitted and validated 
+            for compliance with this contract's requirements.
+          items:
+            $ref: "#/components/schemas/DocumentType"
+        "submitted":
+          type: array
+          description: |-
+            List of document IDs that have been submitted for compliance 
+            verification for this contract.
+          items:
+            $ref: "#/components/schemas/DocumentId"
+        "status":
+          $ref: "#/components/schemas/ComplianceScenarioStatus"
+          description: |-
+            Current compliance fulfillment status for this contract scenario.
+      required:
+        - "contract-id"
+        - "required"
+        - "status"
+    "ComplianceScenarioStatus":
+      type: string
+      description: |-
+        Compliance requirement fulfillment status indicating whether all
+        necessary documents have been submitted and validated for a specific
+        contract scenario.
+      enum:
+        - "pending"
+        - "accepted"
+
+    # Vault - Payment - Estimate
+    "PaymentEstimate":
+      type: object
+      description: |-
+        Comprehensive payment estimation result providing calculated scenarios
+        and compliance requirements for requested contract amounts. Generated
+        in real-time to reflect current network conditions and fee structures.
+      properties:
+        "ts":
+          $ref: "#/components/schemas/Timestamp"
+          description: |-
+            Estimation generation timestamp.
+        "scenarios":
+          type: array
+          description: |-
+            Generated payment scenarios.
+          items:
+            $ref: "#/components/schemas/PaymentEstimateScenario"
+        "compliance":
+          $ref: "#/components/schemas/Compliance"
+        "warnings":
+          type: array
+          description: |-
+            Velocity warnings that fired during the estimate check.
+            Present only when warn-mode limits were exceeded.
+          items:
+            $ref: "#/components/schemas/VelocityWarning"
+      required:
+        - "ts"
+        - "scenarios"
+        - "compliance"
+    "PaymentEstimateScenario":
+      type: object
+      description: |-
+        Individual payment calculation scenario showing the relationship between
+        requested amounts and actual payment requirements including fees,
+        conversions, and network-specific adjustments.
+      properties:
+        "price":
+          $ref: "#/components/schemas/ContractAmount"
+          description: |-
+            Requested payment obligation.
+        "pay":
+          $ref: "#/components/schemas/ContractAmount"
+          description: |-
+            Calculated payment requirement.
+      required:
+        - "price"
+        - "pay"
+
+    # Vault - Payment - Acceptance
+    "PaymentAcceptanceId":
+      $ref: "#/components/schemas/UUID"
+      description: |-
+        Unique identifier for payment acceptance using UUID format. 
+        Ensures global uniqueness across all vaults and payment processing 
+        operations.
+    "PaymentAcceptanceOrder":
+      type: object
+      description: |-
+        Commercial order context and metadata associated with a payment acceptance. 
+        Provides business context for payment processing including order details, 
+        descriptions, and structured metadata for integration with external systems.
+      properties:
+        "id":
+          type: string
+          description: |-
+            External order reference identifier from the originating system 
+            or business process.
+        "description":
+          type: string
+          description: |-
+            Human-readable description of the order or commercial transaction 
+            being processed.
+        "schema":
+          type: object
+          description: |-
+            Metadata schema definition describing the structure and validation 
+            rules for the order data payload.
+          additionalProperties: true
+        "data":
+          type: object
+          description: |-
+            Order-specific data payload containing business information relevant 
+            to the commercial transaction.
+          additionalProperties: true
+    "PaymentAcceptanceInfo":
+      type: object
+      description: |-
+        Payment acceptance operational state and lifecycle information. Contains 
+        current processing status, payment scenarios, compliance state, and 
+        version tracking for audit and monitoring purposes.
+      properties:
+        "status":
+          $ref: "#/components/schemas/PaymentAcceptanceStatus"
+          description: |-
+            Current processing state of the payment acceptance.
+        "version":
+          $ref: "#/components/schemas/Version"
+          description: |-
+            Version tracking information for audit and synchronization purposes.
+        "scenarios":
+          type: array
+          description: |-
+            Active payment execution scenarios with blockchain addresses, 
+            amounts, and transaction tracking information.
+          items:
+            $ref: "#/components/schemas/PaymentAcceptanceScenario"
+        "compliance":
+          $ref: "#/components/schemas/Compliance"
+          description: |-
+            Current compliance status and requirements for all contracts
+            in this payment acceptance.
+        "warnings":
+          type: array
+          description: |-
+            Velocity warnings that fired during the payment creation check.
+            Present only when warn-mode limits were exceeded.
+          items:
+            $ref: "#/components/schemas/VelocityWarning"
+      required:
+        - "status"
+        - "version"
+        - "scenarios"
+        - "compliance"
+    "PaymentAcceptanceConfigBase":
+      type: object
+      description: |-
+        Base configuration for payment acceptance operations containing optional
+        commercial context and document associations. Serves as the foundation for
+        both request and response payment acceptance structures.
+      properties:
+        "order":
+          $ref: "#/components/schemas/PaymentAcceptanceOrder"
+          description: |-
+            Optional commercial order context providing business information 
+            about the transaction being processed.
+        "documents":
+          type: array
+          description: |-
+            Optional list of document IDs to associate with this payment 
+            acceptance for compliance purposes.
+          items:
+            $ref: "#/components/schemas/DocumentId"
+    "PaymentAcceptanceConfig":
+      type: object
+      description: |-
+        Complete payment acceptance configuration used in API responses. Provides
+        full amount information with both display values and raw precision data
+        for all payment scenarios.
+      allOf:
+        - $ref: "#/components/schemas/PaymentAcceptanceConfigBase"
+        - type: object
+          properties:
+            "price-scenarios":
+              type: array
+              description: |-
+                Required payment obligations as contract-amount pairs. Must contain 
+                at least one scenario when creating new payment acceptance.
+              items:
+                $ref: "#/components/schemas/ContractAmount"
+    "PaymentAcceptanceConfigFormat":
+      type: object
+      description: |-
+        Payment acceptance configuration for API requests. Accepts amount data
+        in flexible formats, allowing callers to provide either display values
+        or raw precision data for payment scenarios.
+      allOf:
+        - $ref: "#/components/schemas/PaymentAcceptanceConfigBase"
+        - type: object
+          properties:
+            "price-scenarios":
+              type: array
+              description: |-
+                Required payment obligations as contract-amount pairs. Must contain 
+                at least one scenario when creating new payment acceptance.
+              items:
+                $ref: "#/components/schemas/ContractAmountFormat"
+    "PaymentAcceptance":
+      type: object
+      description: |-
+        Complete payment acceptance record managing the full lifecycle of payment 
+        processing from initiation through completion. Combines configuration, 
+        operational state, and compliance tracking for comprehensive payment management.
+      properties:
+        "id":
+          $ref: "#/components/schemas/PaymentAcceptanceId"
+        "info":
+          $ref: "#/components/schemas/PaymentAcceptanceInfo"
+        "config":
+          $ref: "#/components/schemas/PaymentAcceptanceConfig"
+      required:
+        - "id"
+        - "info"
+        - "config"
+    "PaymentAcceptanceStatus":
+      type: object
+      description: |-
+        Payment acceptance lifecycle state combining status classification with 
+        detailed information about current processing stage. Provides visibility 
+        into payment progress and any issues requiring attention.
+      properties:
+        "id":
+          $ref: "#/components/schemas/PaymentAcceptanceStatusId"
+          description: |-
+            Current processing state category.
+        "details":
+          $ref: "#/components/schemas/PaymentAcceptanceStatusDetails"
+          description: |-
+            Detailed human-readable information about current status including 
+            progress updates, error messages, or completion confirmation.
+      required:
+        - "id"
+        - "details"
+    "PaymentAcceptanceStatusId":
+      type: string
+      description: |-
+        Payment acceptance processing state categories representing different 
+        stages in the payment lifecycle from compliance verification through 
+        final confirmation or cancellation.
+      enum:
+        - "compliance"
+        - "waiting"
+        - "confirming"
+        - "confirmed"
+        - "expired"
+        - "cancelled"
+    "PaymentAcceptanceStatusDetails":
+      type: string
+      description: |-
+        Detailed human-readable explanation of payment acceptance status 
+        including progress updates, error descriptions, completion confirmation, 
+        or other relevant processing information.
+      minLength: 0
+      maxLength: 400
+    "PaymentAcceptanceScenario":
+      type: object
+      description: |-
+        Individual payment execution scenario within a payment acceptance. 
+        Contains all information needed for payment processing including amounts, 
+        blockchain addresses, expiration times, and transaction tracking.
+      properties:
+        "price":
+          $ref: "#/components/schemas/ContractAmount"
+          description: |-
+            Original requested payment amount as specified in the payment acceptance.
+        "pay":
+          $ref: "#/components/schemas/ContractAmount"
+          description: |-
+            Calculated required payment amount including fees and adjustments.
+        "address":
+          $ref: "#/components/schemas/NetworkAddress"
+          description: |-
+            Blockchain address where payment should be sent for this scenario.
+        "expire":
+          $ref: "#/components/schemas/Expire"
+        "status":
+          $ref: "#/components/schemas/PaymentAcceptanceScenarioStatus"
+          description: |-
+            Current execution state of this payment scenario.
+        "received":
+          $ref: "#/components/schemas/ContractAmount"
+          description: |-
+            Amount currently received for this payment scenario.
+        "transaction-list":
+          type: array
+          description: |-
+            List of blockchain transactions detected for this payment scenario.
+          items:
+            $ref: "#/components/schemas/BlockchainTransaction"
+      required:
+        - "price"
+        - "pay"
+        - "address"
+        - "expire"
+        - "status"
+        - "received"
+        - "transaction-list"
+    "PaymentAcceptanceScenarioStatus":
+      type: string
+      description: |-
+        Payment scenario execution state indicating current processing stage 
+        from compliance verification through transaction confirmation or 
+        refund processing.
+      enum:
+        - "compliance"
+        - "waiting"
+        - "confirming"
+        - "confirmed"
+        - "expired"
+        - "refunding"
+        - "refunded"
+
+    # Blockchain
+    "BlockchainTransactionId":
+      type: string
+      description: |-
+        Unique blockchain transaction hash or identifier as recorded on the 
+        blockchain network. Used to track and verify transactions on the network. 
+        This hash serves as the definitive reference for locating transactions 
+        in blockchain explorers and verification systems.
+    "BlockchainTransactionStatus":
+      type: string
+      description: |-
+        Current confirmation status of a blockchain transaction indicating
+        its processing state from initial detection through final confirmation.
+      enum:
+        - "compliance" # Transaction detected but compliance verification required
+        - "waiting" # Transaction submitted to network, awaiting initial confirmation
+        - "confirming" # Transaction confirmed but waiting for additional confirmations
+        - "confirmed" # Transaction fully confirmed with sufficient network consensus
+    "BlockchainConfirmations":
+      type: integer
+      description: |-
+        Number of blockchain confirmations observed for a transaction, indicating
+        the level of network consensus and security. Higher numbers provide
+        greater confidence in transaction finality.
+      minimum: 0
+      maximum: 65535
+    "BlockchainConfirmationStats":
+      type: object
+      description: |-
+        Confirmation progress information for transactions in the confirming state,
+        providing current status and estimated completion time for full confirmation.
+      properties:
+        "confirmed":
+          $ref: "#/components/schemas/BlockchainConfirmations"
+          description: |-
+            Number of confirmations currently observed for this transaction.
+        "remaining":
+          $ref: "#/components/schemas/BlockchainConfirmations"
+          description: |-
+            Number of additional confirmations needed to reach required threshold.
+        "eta":
+          $ref: "#/components/schemas/Timestamp"
+          description: |-
+            Estimated timestamp when the transaction will reach full confirmation
+            based on network block time averages.
+      required:
+        - "confirmed"
+        - "remaining"
+        - "eta"
+    "BlockchainTransaction":
+      type: object
+      description: |-
+        Complete blockchain transaction record including addresses, amounts,
+        timestamps, and confirmation status for comprehensive payment tracking
+        and verification throughout the transaction lifecycle.
+      properties:
+        "id":
+          $ref: "#/components/schemas/BlockchainTransactionId"
+          description: |-
+            Unique blockchain transaction identifier or hash.
+        "ts":
+          $ref: "#/components/schemas/Timestamp"
+          description: |-
+            Timestamp when transaction was first detected or confirmed.
+        "sender":
+          $ref: "#/components/schemas/NetworkAddress"
+          description: |-
+            Blockchain address that sent the funds for this transaction.
+        "receiver":
+          $ref: "#/components/schemas/NetworkAddress"
+          description: |-
+            Blockchain address that received the funds from this transaction.
+        "amount":
+          $ref: "#/components/schemas/ContractAmount"
+          description: |-
+            Precise amount transferred in this transaction with contract context.
+        "status":
+          $ref: "#/components/schemas/BlockchainTransactionStatus"
+          description: |-
+            Current confirmation and processing status of this transaction.
+        "confirmation-stats":
+          $ref: "#/components/schemas/BlockchainConfirmationStats"
+          description: |-
+            Detailed confirmation progress and timing information.
+      required:
+        - "id"
+        - "ts"
+        - "sender"
+        - "receiver"
+        - "amount"
+        - "status"
+        - "confirmation-stats"
+
+    # Velocity Limits
+    "VelocityMode":
+      type: string
+      description: |-
+        Behavior when a velocity limit is exceeded. `reject` blocks the payment with
+        a 400 BIZ-010 error; `warn` allows it but emits a warning in the response.
+      enum:
+        - "reject"
+        - "warn"
+    "VelocityScope":
+      type: string
+      description: |-
+        Hierarchy level at which a velocity limit applies (or was evaluated).
+      enum:
+        - "account"
+        - "vault"
+    "VelocityLimitFormat":
+      type: object
+      description: |-
+        Velocity limit configuration. The unique key per scope is `windowMinutes`.
+        Set `windowMinutes` to 0 for "single payment cap" — no time aggregation;
+        the check compares the requested amount alone against the limit.
+        The limit's `amount` may be denominated in any contract; at check time it
+        is converted to the account's velocity reference contract via a market quote.
+      properties:
+        "window-minutes":
+          type: integer
+          minimum: 0
+          description: |-
+            Rolling window length in minutes. 0 means single payment cap.
+        "amount":
+          $ref: "#/components/schemas/ContractAmountFormat"
+          description: |-
+            Limit amount, denominated in any contract.
+        "mode":
+          $ref: "#/components/schemas/VelocityMode"
+      required:
+        - "window-minutes"
+        - "amount"
+        - "mode"
+    "VelocityWarning":
+      type: object
+      description: |-
+        Emitted in the response of estimate/create endpoints when a warn-mode
+        velocity limit is exceeded but the request was still allowed to proceed.
+      properties:
+        "scope":
+          $ref: "#/components/schemas/VelocityScope"
+        "window-minutes":
+          type: integer
+          minimum: 0
+        "limit":
+          $ref: "#/components/schemas/ContractAmount"
+          description: |-
+            The configured limit (in its original contract).
+        "used":
+          $ref: "#/components/schemas/Amount"
+          description: |-
+            Total exposure used so far, normalized to the account reference contract.
+      required:
+        - "scope"
+        - "window-minutes"
+        - "limit"
+        - "used"

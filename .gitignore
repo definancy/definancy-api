@@ -1,0 +1,11 @@
+# Build directory
+build/
+
+# Local notes
+.local/
+
+# Snyk
+.dccache
+
+# Plandex
+.plandex-v2
