@@ -1,7 +1,7 @@
 openapi: "3.1.0"
 info:
   title: Definancy API
-  version: 0.0.1.wip.20250925
+  version: 0.1.0
   description: |-
     REST API for managing asset, network and contract configurations, and vault-based financial operations.
     This API provides a comprehensive set of endpoints for health monitoring, network management, asset
