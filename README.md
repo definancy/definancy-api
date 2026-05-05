@@ -23,7 +23,7 @@ Pin a tagged commit as a git submodule:
 
 ```bash
 git submodule add https://github.com/definancy/definancy-spec.git spec
-git -C spec checkout spec-v0.3.0
+git -C spec checkout spec-v0.3.1
 ```
 
 The wire shape (`api/openapi.yaml`) feeds OpenAPI code generators. The
