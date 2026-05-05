@@ -10,6 +10,16 @@ only fixes.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-05-05
+
+### Changed
+- Repo-level `README.md` and `api/README.md` rewritten for a public
+  audience: removed references to private downstream consumers, removed
+  cross-references into the (private) consumer factory's tooling paths,
+  and gave this repo its own security-reporting contact instead of
+  redirecting to a private repo's `SECURITY.md`. Documentation only —
+  no spec or vector content changed.
+
 ## [0.3.0] - 2026-05-05
 
 ### Changed

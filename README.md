@@ -2,7 +2,7 @@
 
 The Definancy contract — OpenAPI wire spec plus the cross-language
 conformance suite that pins observable behavior. Single source of truth
-for every consumer (the SDK factory, the daemon, future tools).
+for everything that needs to talk to Definancy on the wire.
 
 ## Layout
 
@@ -17,7 +17,7 @@ conformance/
 CHANGELOG.md            ← release log (this file's tag chain)
 ```
 
-## How consumers use this repo
+## How to consume
 
 Pin a tagged commit as a git submodule:
 
@@ -26,41 +26,35 @@ git submodule add https://github.com/definancy/definancy-spec.git spec
 git -C spec checkout spec-v0.3.0
 ```
 
-The wire shape feeds code generators (`api/openapi.yaml`); the conformance
-suite feeds runners that assert hand-written domain code produces
-byte-identical outputs across languages (`conformance/vectors/*.yaml`).
+The wire shape (`api/openapi.yaml`) feeds OpenAPI code generators. The
+conformance suite (`conformance/vectors/*.yaml`) feeds runners that
+assert hand-written domain code produces byte-identical outputs across
+languages — see [`conformance/README.md`](conformance/README.md) for the
+runner contract.
 
-Known consumers:
-- [`definancy-sdks`](https://github.com/definancy/definancy-sdks) — multi-
-  language SDK factory. Generates per-language SDKs from `api/openapi.yaml`
-  and exercises them against `conformance/vectors/`.
-- The Definancy daemon (private) — generates server stubs from the same
-  OpenAPI spec and validates its own outputs against the same conformance
-  vectors the SDKs use.
+The official Definancy SDKs are the visible reference consumers:
+
+- [`definancy-sdk-typescript`](https://github.com/definancy/definancy-sdk-typescript)
+- [`definancy-sdk-java`](https://github.com/definancy/definancy-sdk-java)
+
+Each ships a conformance runner that exercises the full vector set on
+every release.
 
 ## Releases
 
 Releases are tagged `spec-v<MAJOR>.<MINOR>.<PATCH>`. See [CHANGELOG.md](CHANGELOG.md)
-for the version history. Pre-1.0 releases use MINOR for any contract-
-visible change (added paths, vector-value updates, layout changes); PATCH
-is reserved for documentation-only updates.
+for the version history. Pre-1.0 releases use MINOR for any
+contract-visible change (added paths, vector-value updates, layout
+changes); PATCH is reserved for documentation-only updates.
 
 Tags are immutable once pushed.
 
-## Contributing
-
-The spec evolves via PRs to `main`. CI in the consumer factory
-(`definancy-sdks`) lints with Spectral and runs `oasdiff` against the
-last released tag, so breaking changes are flagged at PR time. Vector
-changes are exercised by every consumer's conformance runner — a vector
-that disagrees with one or more reference implementations blocks the
-release.
-
 ## Security
 
-Vulnerabilities — including missing or incorrect conformance vectors
-that fail to catch a real divergence — should be reported per the
-factory's [SECURITY.md](https://github.com/definancy/definancy-sdks/blob/main/SECURITY.md).
+To report a vulnerability — including missing or incorrect conformance
+vectors that fail to catch a real divergence — email
+**security@definancy.com** rather than opening a public GitHub issue. We
+acknowledge within 2 business days.
 
 ## License
 
