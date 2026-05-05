@@ -10,11 +10,10 @@ description: |
   and exercises the 1024-bit-block padding path (input is exactly 112 bytes
   → 1 SHA-512 block of input + 1 padding block).
 
-  This algorithm is the one TS currently calls as
-  `crypto.subtle.digest("SHA-512/256", ...)` — which throws `NotSupportedError`
-  on every WebCrypto runtime. See `algorithms/sha512_256.md`. The vectors
-  encode CORRECT behavior; getting the TS SDK to pass them is a Session 3
-  fix (replace WebCrypto call with a real SHA-512/256 implementation).
+  WebCrypto does not register SHA-512/256 as an algorithm — implementations
+  must use a non-WebCrypto digest library (e.g. @noble/hashes in JS,
+  java.security.MessageDigest with "SHA-512/256" in Java, hashlib in Python).
+  See `algorithms/sha512_256.md` for the algorithm spec.
 
   Cross-validated by Python `hashlib.new("sha512_256")` and Node
   `crypto.createHash("sha512-256")` (note Node spells it with a dash, not a slash).
