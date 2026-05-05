@@ -1,0 +1,30 @@
+name: "sha256/known_answers"
+
+description: |
+  SHA-256 (FIPS 180-4) known-answer tests. Inputs are byte strings; outputs
+  are 32-byte digests in lowercase hex. The "alphabet_56" case is the NIST
+  FIPS 180-4 §B.2 example used to verify multi-block padding handling.
+
+  Cross-validated by Python `hashlib.sha256` and Node `crypto.createHash("sha256")`
+  (both produce identical digests).
+
+metadata:
+  source: "FIPS 180-4 §B.2 (alphabet_56) + canonical RFC/lore values for the rest"
+  spec:   "NIST FIPS 180-4"
+
+cases:
+  - label: "empty"
+    input:  { bytes_hex: "" }
+    output: { digest_hex: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" }
+
+  - label: "abc"
+    input:  { bytes_hex: "616263" }
+    output: { digest_hex: "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" }
+
+  - label: "alphabet_56"   # FIPS 180-4 §B.2 — exercises 2 SHA-256 blocks
+    input:  { bytes_hex: "6162636462636465636465666465666765666768666768696768696a68696a6b696a6b6c6a6b6c6d6b6c6d6e6c6d6e6f6d6e6f706e6f7071" }
+    output: { digest_hex: "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1" }
+
+  - label: "quick_brown_fox"
+    input:  { bytes_hex: "54686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67" }
+    output: { digest_hex: "d7a8fbb307d7809469ca9abcb0082e4f8d5651e46d3cdb762d02d0bf37c9e592" }

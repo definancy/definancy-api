@@ -1,0 +1,43 @@
+name: "authorization_jwt/local_provider_at_t1700000000"
+
+description: |
+  Authorization JWT minted by the LocalAuthProvider equivalent with all
+  inputs pinned: caller key (RFC 8032 Test 1 seed), network ("dev"),
+  audience, and explicit iat/exp. Output is the byte-pinned signed JWT
+  compact serialization.
+
+  Tests the full pipeline: derive Ed25519 keypair from seed → derive
+  DefinancyId → format DefinancyDid → derive JWK thumbprint → mint
+  Authorization JWT with explicit timestamps → sign with caller key →
+  serialize as JWT compact (`header.claims.signature`).
+
+  Intermediate values (`did`, `jwk_thumbprint_b64url`) are included so a
+  failing runner can isolate which step diverged.
+
+  This vector requires the SDK's Authorization-JWT factory to take
+  `iat`/`exp` as explicit parameters — the legacy API generated `iat`
+  via `Instant.now()` / `Date.now()`, making byte-exact vectors
+  impossible. The refactor that pulled clock impurity up to
+  `LocalAuthProvider` is a precondition for this vector to exist.
+
+  Cross-validated by Python `cryptography` (Ed25519) +
+  `json.dumps(sort_keys=True, separators=(",",":"))` +
+  `base64.urlsafe_b64encode().rstrip(b"=")`.
+
+metadata:
+  source: "Composition of RFC 8032 §7.1 Test 1 + Definancy auth spec"
+  spec:   "Definancy auth spec (DPoP-bound JWS-EdDSA)"
+
+cases:
+  - label: "rfc_8032_test_1_caller"
+    input:
+      seed_hex: "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
+      network: "dev"
+      audience: "https://api.definancy.com"
+      iat: 1700000000
+      exp: 1700000060
+    output:
+      did: "did:definancy:dev:25NJQAMCWEFLPVKL73J4SZAHHIHOC4XT3KTCGJNPAINGR5YHKENMEF5QTE"
+      jwk_thumbprint_b64url: "kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k"
+      signature_b64url: "YiJ47S33pOMgJKxuWqWrjcepac4nPs8oB3at0MKTBzJBZjSAGRZzW1X9e4p2SFXapOBwOmGIk1NaZ6Z19dMvAw"
+      jwt_compact: "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL2FwaS5kZWZpbmFuY3kuY29tIiwiY25mIjp7ImprdCI6ImtQcktfcW14VldhWVZBOXd3QkY2SXVvM3ZWeno3VHhIQ1R3WEJ5Z3JTNGsifSwiZXhwIjoxNzAwMDAwMDYwLCJpYXQiOjE3MDAwMDAwMDAsImlzcyI6ImRpZDpkZWZpbmFuY3k6ZGV2OjI1TkpRQU1DV0VGTFBWS0w3M0o0U1pBSEhJSE9DNFhUM0tUQ0dKTlBBSU5HUjVZSEtFTk1FRjVRVEUiLCJzdWIiOiJkaWQ6ZGVmaW5hbmN5OmRldjoyNU5KUUFNQ1dFRkxQVktMNzNKNFNaQUhISUhPQzRYVDNLVENHSk5QQUlOR1I1WUhLRU5NRUY1UVRFIn0.YiJ47S33pOMgJKxuWqWrjcepac4nPs8oB3at0MKTBzJBZjSAGRZzW1X9e4p2SFXapOBwOmGIk1NaZ6Z19dMvAw"

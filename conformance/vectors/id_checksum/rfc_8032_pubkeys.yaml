@@ -1,0 +1,53 @@
+name: "id_checksum/rfc_8032_pubkeys"
+
+description: |
+  DefinancyId construction from Ed25519 public keys. Composes three
+  primitives: SHA-512/256 (digest of the pubkey), last-4-byte slice
+  (checksum), and base32-no-padding (final encoding).
+
+  Algorithm (per `algorithms/id_checksum.md`):
+    1. Take the 32-byte raw Ed25519 public key.
+    2. Compute SHA-512/256 over those 32 bytes.
+    3. Take the last 4 bytes of the digest as the checksum.
+    4. Concatenate id (32) || checksum (4) = 36 bytes.
+    5. Base32-encode (no padding) → exactly 58 characters.
+
+  The pubkeys come from the RFC 8032 §7.1 test vectors so a reader can
+  cross-reference with `vectors/ed25519/rfc_8032_test_vectors.yaml`.
+  Intermediate values (`sha512_256_hex`, `checksum_hex`, `combined_hex`)
+  are included so a failing runner can pinpoint which step diverged.
+
+  Cross-validated by Python: hashlib SHA-512/256 + base64.b32encode with
+  padding stripped.
+
+metadata:
+  source: "Composition of RFC 8032 §7.1 pubkeys + Definancy ID spec"
+  spec:   "Definancy ID spec"
+
+cases:
+  - label: "rfc_8032_test_1_pubkey"
+    input:
+      public_key_hex: "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+    output:
+      sha512_256_hex: "f57077322c3807e57088c6ad30afab0d5bd8ff141d3f12758152bc43c217b099"
+      checksum_hex:   "c217b099"
+      combined_hex:   "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511ac217b099"
+      id_string:      "25NJQAMCWEFLPVKL73J4SZAHHIHOC4XT3KTCGJNPAINGR5YHKENMEF5QTE"
+
+  - label: "rfc_8032_test_2_pubkey"
+    input:
+      public_key_hex: "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c"
+    output:
+      sha512_256_hex: "98d2f3899de626883534e8fd57d291d4102b7cf405727ce68ecf58220f11c4f6"
+      checksum_hex:   "0f11c4f6"
+      combined_hex:   "3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c0f11c4f6"
+      id_string:      "HVABPQ7IIOEVVEVXBKTU2G36XSOJQLGPF3CJNDGAZVK7CKXUMYGA6EOE6Y"
+
+  - label: "rfc_8032_test_3_pubkey"
+    input:
+      public_key_hex: "fc51cd8e6218a1a38da47ed00230f0580816ed13ba3303ac5deb911548908025"
+    output:
+      sha512_256_hex: "3c2f462f7c0797c6762411ecc9eca454470cd28c2fee52f05e8c4a66dd3b0a49"
+      checksum_hex:   "dd3b0a49"
+      combined_hex:   "fc51cd8e6218a1a38da47ed00230f0580816ed13ba3303ac5deb911548908025dd3b0a49"
+      id_string:      "7RI43DTCDCQ2HDNEP3IAEMHQLAEBN3ITXIZQHLC55OIRKSEQQAS52OYKJE"

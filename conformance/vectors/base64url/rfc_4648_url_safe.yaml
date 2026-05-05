@@ -1,0 +1,44 @@
+name: "base64url/rfc_4648_url_safe"
+
+description: |
+  Base64url (RFC 4648 §5) encoding cases that exercise the URL-safe
+  alphabet (`-` for value 62, `_` for value 63). ASCII-only inputs round-trip
+  through the standard alphabet too; the dash-and-underscore cases use byte
+  sequences specifically chosen to produce both characters in the output, so
+  any implementation that fails to map `+→-` and `/→_` will diverge here.
+
+  All outputs are base64url **with no padding** (matches Definancy SDK convention).
+  Cross-validated by Python `base64.urlsafe_b64encode` and Node `Buffer.toString("base64url")`.
+
+metadata:
+  source: "https://datatracker.ietf.org/doc/html/rfc4648#section-5"
+  spec:   "RFC 4648 §5"
+
+cases:
+  - label:  "empty"
+    input:  { bytes_hex: "" }
+    output: { encoded:   "" }
+
+  - label:  "0xff_single"   # hits underscore (value 63)
+    input:  { bytes_hex: "ff" }
+    output: { encoded:   "_w" }
+
+  - label:  "0xfb_single"   # hits dash (value 62)
+    input:  { bytes_hex: "fb" }
+    output: { encoded:   "-w" }
+
+  - label:  "dash_and_underscore"   # crafted to hit both `-` and `_` repeatedly
+    input:  { bytes_hex: "fbefbffffbefbfff" }
+    output: { encoded:   "---___vvv_8" }
+
+  - label:  "foobar_ascii"   # ASCII, same input as the base32 known-answer set
+    input:  { bytes_hex: "666f6f626172" }
+    output: { encoded:   "Zm9vYmFy" }
+
+  - label:  "rfc7515_a1_jose_header"   # JWS Compact ex. — JOSE header bytes
+    input:  { bytes_hex: "65794a30655841694f694a4b563151694c41304b49434a68624763694f694a49557a49314e694a39" }
+    output: { encoded:   "ZXlKMGVYQWlPaUpLVjFRaUxBMEtJQ0poYkdjaU9pSklVekkxTmlKOQ" }
+
+  - label:  "31_bytes_random_pattern"
+    input:  { bytes_hex: "00112233445566778899aabbccddeeff112233445566778899aabbccddeeff" }
+    output: { encoded:   "ABEiM0RVZneImaq7zN3u_xEiM0RVZneImaq7zN3u_w" }

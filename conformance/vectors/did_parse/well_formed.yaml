@@ -1,0 +1,38 @@
+name: "did_parse/well_formed"
+
+description: |
+  DefinancyDid format vectors: input is `(network, id_string)`, output is
+  the canonical `did:definancy:{network}:{id}` string. The IDs reused here
+  are derived from the RFC 8032 §7.1 test pubkeys (see
+  `vectors/id_checksum/rfc_8032_pubkeys.yaml`) so any failure can be
+  attributed to the DID layer alone, not the upstream ID computation.
+
+  Today the SDKs only *format* DIDs; neither has a parser. When parsing
+  is added, the same cases run in reverse: `parse(did)` should yield
+  `(network, id_string)` matching the inputs.
+
+metadata:
+  source: "Definancy DID spec"
+  spec:   "Definancy DID spec"
+
+cases:
+  - label: "dev_test_1"
+    input:
+      network:   "dev"
+      id_string: "25NJQAMCWEFLPVKL73J4SZAHHIHOC4XT3KTCGJNPAINGR5YHKENMEF5QTE"
+    output:
+      did: "did:definancy:dev:25NJQAMCWEFLPVKL73J4SZAHHIHOC4XT3KTCGJNPAINGR5YHKENMEF5QTE"
+
+  - label: "mainnet_test_1"
+    input:
+      network:   "mainnet"
+      id_string: "25NJQAMCWEFLPVKL73J4SZAHHIHOC4XT3KTCGJNPAINGR5YHKENMEF5QTE"
+    output:
+      did: "did:definancy:mainnet:25NJQAMCWEFLPVKL73J4SZAHHIHOC4XT3KTCGJNPAINGR5YHKENMEF5QTE"
+
+  - label: "dev_test_2"
+    input:
+      network:   "dev"
+      id_string: "HVABPQ7IIOEVVEVXBKTU2G36XSOJQLGPF3CJNDGAZVK7CKXUMYGA6EOE6Y"
+    output:
+      did: "did:definancy:dev:HVABPQ7IIOEVVEVXBKTU2G36XSOJQLGPF3CJNDGAZVK7CKXUMYGA6EOE6Y"

@@ -1,0 +1,54 @@
+name: "amount_math/round_trip"
+
+description: |
+  Round-trip conversion between decimal-value strings and raw integer
+  strings (the smallest-unit representation) for asset amounts. Two
+  operations per case:
+
+    - valueToRaw(value, decimals) → raw     (e.g. "1.5", 6 → "1500000")
+    - rawToValue(raw, decimals)   → value   (e.g. "1500000", 6 → "1.5")
+
+  The contract is **byte-exact pure-string arithmetic** — no
+  floating-point allowed. Cross-language parity is critical: the SDK
+  hands amount strings to the API; any divergence between languages
+  on the same input produces silently-different on-the-wire values.
+
+  Cases cover: zero, integer-only assets, decimal stripping ("1.50" is
+  not canonical — the canonical value form is "1.5"), the smallest
+  representable unit, large values that don't round-trip via floats,
+  and negative numbers.
+
+  Cross-validated by running the TS implementation
+  (`amounts.ts:valueToRaw` + `amounts.ts:rawToValue`).
+
+metadata:
+  source: "Definancy amount precision contract"
+  spec:   "Definancy amount precision contract"
+
+cases:
+  - label: "zero_no_decimals"
+    input:  { value: "0", raw: "0", decimals: 0 }
+
+  - label: "zero_with_decimals"
+    input:  { value: "0", raw: "0", decimals: 8 }
+
+  - label: "usdc_one"
+    input:  { value: "1", raw: "1000000", decimals: 6 }
+
+  - label: "smallest_usdc_unit"
+    input:  { value: "0.000001", raw: "1", decimals: 6 }
+
+  - label: "usdc_one_and_a_half"
+    input:  { value: "1.5", raw: "1500000", decimals: 6 }
+
+  - label: "large_value_precision_test"
+    input:  { value: "12345.6789", raw: "12345678900", decimals: 6 }
+
+  - label: "negative_one_and_a_half"
+    input:  { value: "-1.5", raw: "-1500000", decimals: 6 }
+
+  - label: "integer_only_asset"
+    input:  { value: "42", raw: "42", decimals: 0 }
+
+  - label: "btc_smallest_unit"
+    input:  { value: "0.00000001", raw: "1", decimals: 8 }

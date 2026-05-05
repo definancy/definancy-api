@@ -1,0 +1,67 @@
+name: "jwt_canonical/canonical_serialization"
+
+description: |
+  Tests JWT canonical serialization (alphabetical key sort applied
+  RECURSIVELY, no whitespace, base64url segments). The vector provides
+  header and claims as YAML maps; the SDK should produce a deterministic
+  two-segment unsigned JWT string `header_b64.claims_b64` that matches
+  byte-for-byte.
+
+  This is the canonicalization layer where the TS bug lives:
+    - TS jwt.ts:43 `sortedJsonStringify` uses `JSON.stringify` with the
+      replacer-array argument, which filters keys RECURSIVELY by the
+      top-level key list. Cases with nested objects (`cnf.jkt`,
+      `jwk.{crv,kty,x}`) fail in TS today.
+    - Java's Jackson with `SORT_PROPERTIES_ALPHABETICALLY` is recursive
+      and correct.
+
+  Cross-validated by Python `json.dumps(..., sort_keys=True,
+  separators=(",", ":"))` + `base64.urlsafe_b64encode` + rstrip("=").
+
+metadata:
+  source: "Definancy auth spec + RFC 7519 §3 JWS Compact Serialization"
+  spec:   "RFC 7519"
+
+cases:
+  # --- Case 1: flat header (sanity, no nesting) ---
+  - label: "authorization_header_flat"
+    input:
+      header: { alg: "EdDSA", typ: "JWT" }
+      claims: {}
+    output:
+      canonical_header_utf8: '{"alg":"EdDSA","typ":"JWT"}'
+      canonical_claims_utf8: '{}'
+      unsigned_jwt: "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.e30"
+
+  # --- Case 2: Authorization claims with nested cnf.jkt (catches TS bug) ---
+  - label: "authorization_claims_with_cnf"
+    input:
+      header: { alg: "EdDSA", typ: "JWT" }
+      claims:
+        aud: "https://api.definancy.com"
+        cnf:
+          jkt: "kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k"
+        exp: 1700000060
+        iat: 1700000000
+        iss: "did:definancy:dev:25NJQAMCWEFLPVKL73J4SZAHHIHOC4XT3KTCGJNPAINGR5YHKENMEF5QTE"
+        sub: "did:definancy:dev:25NJQAMCWEFLPVKL73J4SZAHHIHOC4XT3KTCGJNPAINGR5YHKENMEF5QTE"
+    output:
+      canonical_header_utf8: '{"alg":"EdDSA","typ":"JWT"}'
+      canonical_claims_utf8: '{"aud":"https://api.definancy.com","cnf":{"jkt":"kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k"},"exp":1700000060,"iat":1700000000,"iss":"did:definancy:dev:25NJQAMCWEFLPVKL73J4SZAHHIHOC4XT3KTCGJNPAINGR5YHKENMEF5QTE","sub":"did:definancy:dev:25NJQAMCWEFLPVKL73J4SZAHHIHOC4XT3KTCGJNPAINGR5YHKENMEF5QTE"}'
+      unsigned_jwt: "eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL2FwaS5kZWZpbmFuY3kuY29tIiwiY25mIjp7ImprdCI6ImtQcktfcW14VldhWVZBOXd3QkY2SXVvM3ZWeno3VHhIQ1R3WEJ5Z3JTNGsifSwiZXhwIjoxNzAwMDAwMDYwLCJpYXQiOjE3MDAwMDAwMDAsImlzcyI6ImRpZDpkZWZpbmFuY3k6ZGV2OjI1TkpRQU1DV0VGTFBWS0w3M0o0U1pBSEhJSE9DNFhUM0tUQ0dKTlBBSU5HUjVZSEtFTk1FRjVRVEUiLCJzdWIiOiJkaWQ6ZGVmaW5hbmN5OmRldjoyNU5KUUFNQ1dFRkxQVktMNzNKNFNaQUhISUhPQzRYVDNLVENHSk5QQUlOR1I1WUhLRU5NRUY1UVRFIn0"
+
+  # --- Case 3: DPoP header with embedded jwk (catches TS bug) ---
+  - label: "dpop_header_with_jwk"
+    input:
+      header:
+        alg: "EdDSA"
+        jwk:
+          crv: "Ed25519"
+          kty: "OKP"
+          x: "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+        typ: "DPoP+JWT"
+      claims: {}
+    output:
+      canonical_header_utf8: '{"alg":"EdDSA","jwk":{"crv":"Ed25519","kty":"OKP","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"},"typ":"DPoP+JWT"}'
+      canonical_claims_utf8: '{}'
+      unsigned_jwt: "eyJhbGciOiJFZERTQSIsImp3ayI6eyJjcnYiOiJFZDI1NTE5Iiwia3R5IjoiT0tQIiwieCI6IjExcVlBWUt4Q3JmVlNfN1R5V1FIT2c3aGN2UGFwaU1scndJYWFQY0hVUm8ifSwidHlwIjoiRFBvUCtKV1QifQ.e30"

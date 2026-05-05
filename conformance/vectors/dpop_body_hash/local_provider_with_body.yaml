@@ -1,0 +1,40 @@
+name: "dpop_body_hash/local_provider_with_body"
+
+description: |
+  DPoP proof JWT with a non-null body — exercises the `bsh` claim
+  pipeline (SHA-512/256 of body bytes → base64url-no-padding). Body
+  bytes are pinned as raw hex so both languages MUST hash the same
+  bytes; any deviation surfaces as a mismatching `bsh` claim and a
+  mismatching signature.
+
+  This is the vector that catches the documented Java
+  `LocalAuthProvider.java:49` `body.toString()` bug: when the JAX-RS
+  entity is a typed POJO without a custom `toString()`, the legacy
+  Java DPoP path hashes the JVM identity string `Class@hex` instead of
+  the wire JSON. Fixing that bug requires pushing serialization up
+  to the call boundary AND changing the DPoP API to accept `byte[]`
+  (the actual wire bytes) instead of `String`.
+
+  Body bytes for this case: UTF-8 of `{"hello":"world"}` (17 bytes).
+
+  Cross-validated by Python `cryptography` (Ed25519) +
+  `hashlib.new("sha512_256", body)` +
+  `base64.urlsafe_b64encode().rstrip(b"=")`.
+
+metadata:
+  source: "Composition of RFC 8032 §7.1 Test 1 + Definancy auth spec (custom `bsh` claim)"
+  spec:   "Definancy auth spec (`bsh = base64url(SHA-512/256(body))`)"
+
+cases:
+  - label: "rfc_8032_test_1_caller_put_with_json_body"
+    input:
+      seed_hex: "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
+      jti: "550e8400-e29b-41d4-a716-446655440000"
+      method: "PUT"
+      htu: "https://api.definancy.com/v1/asset"
+      body_bytes_hex: "7b2268656c6c6f223a22776f726c64227d"
+      iat: 1700000000
+      exp: 1700000060
+    output:
+      bsh_b64url: "znaU1mK6eJpMnchGddZt8fzuO0DWnTLd3ymcYlwQlfg"
+      jwt_compact: "eyJhbGciOiJFZERTQSIsImp3ayI6eyJjcnYiOiJFZDI1NTE5Iiwia3R5IjoiT0tQIiwieCI6IjExcVlBWUt4Q3JmVlNfN1R5V1FIT2c3aGN2UGFwaU1scndJYWFQY0hVUm8ifSwidHlwIjoiRFBvUCtKV1QifQ.eyJic2giOiJ6bmFVMW1LNmVKcE1uY2hHZGRadDhmenVPMERXblRMZDN5bWNZbHdRbGZnIiwiZXhwIjoxNzAwMDAwMDYwLCJodG0iOiJQVVQiLCJodHUiOiJodHRwczovL2FwaS5kZWZpbmFuY3kuY29tL3YxL2Fzc2V0IiwiaWF0IjoxNzAwMDAwMDAwLCJqdGkiOiI1NTBlODQwMC1lMjliLTQxZDQtYTcxNi00NDY2NTU0NDAwMDAifQ.JuCsDn4r_YJWvcn4cQJiKEhrTMbAY5yhVzz6EdM4R8W90C_A7S7C9J3XMt1GorwkJoMJIKm-RVsLn-j0A-TsDQ"

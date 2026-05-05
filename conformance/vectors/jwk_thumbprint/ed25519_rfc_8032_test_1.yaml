@@ -1,0 +1,24 @@
+name: "jwk_thumbprint/ed25519_rfc_8032_test_1"
+
+description: |
+  RFC 7638 thumbprint of the Ed25519 OKP JWK derived from the public key in
+  RFC 8032 §7.1 Test 1. Verifies (a) JWK canonicalization (members crv/kty/x
+  in alphabetical order, no whitespace, base64url-no-padding for x),
+  (b) UTF-8 encoding of the canonical string, (c) SHA-256, (d)
+  base64url-no-padding of the digest. Intermediate canonical_json_utf8 is
+  included so a failing runner can isolate which step diverges.
+
+metadata:
+  source: "RFC 7638 §3 (algorithm) + RFC 8032 §7.1 Test 1 (Ed25519 public key)"
+  spec:   "RFC 7638"
+
+cases:
+  - label: "rfc_8032_test_1_pubkey"
+    input:
+      public_key_hex: "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a"
+    output:
+      x_b64url:           "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+      # Canonical JSON contains double-quotes; wrap the YAML scalar in single
+      # quotes so we don't have to escape every embedded ".
+      canonical_json_utf8: '{"crv":"Ed25519","kty":"OKP","x":"11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"}'
+      thumbprint_b64url:  "kPrK_qmxVWaYVA9wwBF6Iuo3vVzz7TxHCTwXBygrS4k"

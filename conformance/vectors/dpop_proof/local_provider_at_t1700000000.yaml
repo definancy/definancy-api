@@ -1,0 +1,42 @@
+name: "dpop_proof/local_provider_at_t1700000000"
+
+description: |
+  DPoP proof JWT (RFC 9449, customized) with all inputs pinned: caller
+  key (RFC 8032 Test 1 seed), HTTP method, target URL, body=null,
+  pinned jti, iat, exp. Output is the byte-exact signed JWT compact.
+
+  Tests the full pipeline: derive Ed25519 keypair from seed → derive
+  JWK (for the embedded `jwk` header) → mint DPoP proof with explicit
+  jti/iat/exp → sign → serialize as JWT compact.
+
+  Body is intentionally null in this vector — `bsh` claim is therefore
+  absent. The body-hash path (and the documented Java
+  `body.toString()` bug) lives in a separate `dpop_body_hash` vector.
+
+  This vector requires the SDK's DPoP factory to take `iat`/`exp` as
+  explicit parameters. The legacy API generated `iat` via `Instant.now()`
+  / `Date.now()`. The clock-injection refactor mirrors what was done
+  for `authorization_jwt`: factories stay pure; impurities live at the
+  `LocalAuthProvider.authenticate` boundary.
+
+  Cross-validated by Python `cryptography` (Ed25519) +
+  `json.dumps(sort_keys=True, separators=(",",":"))` +
+  `base64.urlsafe_b64encode().rstrip(b"=")`.
+
+metadata:
+  source: "Composition of RFC 8032 §7.1 Test 1 + RFC 9449 + Definancy auth spec"
+  spec:   "RFC 9449 (`htu` = full request URI minus query/fragment, custom `bsh` body-hash claim instead of `ath`)"
+
+cases:
+  - label: "rfc_8032_test_1_caller_get_no_body"
+    input:
+      seed_hex: "9d61b19deffd5a60ba844af492ec2cc44449c5697b326919703bac031cae7f60"
+      jti: "550e8400-e29b-41d4-a716-446655440000"
+      method: "GET"
+      htu: "https://api.definancy.com/v1/asset"
+      iat: 1700000000
+      exp: 1700000060
+    output:
+      jwk_x_b64url: "11qYAYKxCrfVS_7TyWQHOg7hcvPapiMlrwIaaPcHURo"
+      signature_b64url: "Uio-cz8-rSL_KGTL15vw9PLn3-LGfEQasrC7K2-jiSWQV1b4WeFO3wYH-UNJCGf6lxkRaiLXKW0x7ML6fM9LBQ"
+      jwt_compact: "eyJhbGciOiJFZERTQSIsImp3ayI6eyJjcnYiOiJFZDI1NTE5Iiwia3R5IjoiT0tQIiwieCI6IjExcVlBWUt4Q3JmVlNfN1R5V1FIT2c3aGN2UGFwaU1scndJYWFQY0hVUm8ifSwidHlwIjoiRFBvUCtKV1QifQ.eyJleHAiOjE3MDAwMDAwNjAsImh0bSI6IkdFVCIsImh0dSI6Imh0dHBzOi8vYXBpLmRlZmluYW5jeS5jb20vdjEvYXNzZXQiLCJpYXQiOjE3MDAwMDAwMDAsImp0aSI6IjU1MGU4NDAwLWUyOWItNDFkNC1hNzE2LTQ0NjY1NTQ0MDAwMCJ9.Uio-cz8-rSL_KGTL15vw9PLn3-LGfEQasrC7K2-jiSWQV1b4WeFO3wYH-UNJCGf6lxkRaiLXKW0x7ML6fM9LBQ"

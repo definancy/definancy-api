@@ -1,0 +1,41 @@
+name: "base32/rfc_4648_known_answers"
+
+description: |
+  RFC 4648 §10 base32 known-answer pairs, presented in the no-padding form
+  Definancy uses on the wire. Tests both encode (bytes → string) and decode
+  (string → bytes). Decode SHOULD also accept the padded form (suffixed
+  with '=' to a multiple of 8) but those round-trip tests live in a
+  separate scenario.
+
+metadata:
+  source: "https://datatracker.ietf.org/doc/html/rfc4648#section-10"
+  spec:   "RFC 4648 §6"
+
+cases:
+  - label:  "empty"
+    input:  { bytes_hex: "" }
+    output: { encoded:   "" }
+
+  - label:  "f"
+    input:  { bytes_hex: "66" }
+    output: { encoded:   "MY" }
+
+  - label:  "fo"
+    input:  { bytes_hex: "666f" }
+    output: { encoded:   "MZXQ" }
+
+  - label:  "foo"
+    input:  { bytes_hex: "666f6f" }
+    output: { encoded:   "MZXW6" }
+
+  - label:  "foob"
+    input:  { bytes_hex: "666f6f62" }
+    output: { encoded:   "MZXW6YQ" }
+
+  - label:  "fooba"
+    input:  { bytes_hex: "666f6f6261" }
+    output: { encoded:   "MZXW6YTB" }
+
+  - label:  "foobar"
+    input:  { bytes_hex: "666f6f626172" }
+    output: { encoded:   "MZXW6YTBOI" }
