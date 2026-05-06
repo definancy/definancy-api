@@ -140,6 +140,37 @@ paths:
         default:
           $ref: "#/components/responses/DefaultResponse"
 
+  # Experimental — endpoints reserved for development-environment use.
+  # The placeholder ExperimentalPing exists so this tag always carries at
+  # least one operation, which forces openapi-generator to keep the generated
+  # ExperimentalApi class regenerated against the current spec rather than
+  # preserving stale methods from a previous spec revision.
+  /v1/experimental/ping:
+    get:
+      operationId: ExperimentalPing
+      summary: Experimental connectivity probe
+      description: |-
+        Connectivity probe for the Experimental tag surface. Returns OK when
+        the daemon's experimental endpoints are reachable. Reserved for
+        future development-environment endpoints (DPoP testing aids,
+        fixture seeding, etc.).
+      tags:
+        - Experimental
+      security: []
+      responses:
+        "200":
+          description: |-
+            OK.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Status"
+          headers:
+            Cache-Control:
+              $ref: "#/components/headers/CacheControlHeader"
+        default:
+          $ref: "#/components/responses/DefaultResponse"
+
   # Auth
   /v1/auth/{definancyId}:
     put:

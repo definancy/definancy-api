@@ -10,6 +10,19 @@ only fixes.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-06
+
+### Added
+- **`GET /v1/experimental/ping`** — connectivity probe for the
+  Experimental tag surface. The endpoint is unauthenticated and returns
+  the standard `Status` schema. Implementation is intentionally minimal;
+  its primary purpose is to keep the `Experimental` tag carrying at least
+  one operation so that downstream code generators (notably
+  openapi-generator-cli for Java, which skips writing API classes for
+  empty tags) always regenerate the corresponding API class against the
+  current spec — preventing stale methods from persisting after operations
+  move out of the tag.
+
 ## [0.3.1] - 2026-05-05
 
 ### Changed
